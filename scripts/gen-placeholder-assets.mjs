@@ -1,11 +1,14 @@
-// DEV-ONLY tool. Draws the Stage 1 placeholder art as PNG files.
+// DEV-ONLY tool. Draws the placeholder art as PNG files.
 // This is NOT part of the game that ships to players — it just makes the
-// stand-in tileset and character images so we have something to look at.
+// stand-in tileset, character, and prop images so we have something to look at.
 // Run it with:  node scripts/gen-placeholder-assets.mjs
 //
 // It writes:
-//   public/assets/sprites/tileset.png   (2 tiles: floor + wall, 16x16 each)
-//   public/assets/sprites/player.png     (character sheet, 16x24 frames)
+//   public/assets/sprites/tileset.png     (2 tiles: floor + wall, 16x16 each)
+//   public/assets/sprites/player.png       (character sheet, 16x24 frames)
+//   public/assets/sprites/coffee_pot.png   (prop, 16x16)  [Stage 2]
+//   public/assets/sprites/folder.png        (prop, 16x16)  [Stage 2]
+//   public/assets/sprites/desk.png          (prop, 16x16)  [Stage 2]
 // The map JSON is written by a separate step; see gen-placeholder-map.mjs.
 
 import { PNG } from 'pngjs';
@@ -134,6 +137,49 @@ function buildPlayer() {
   save(png, 'public/assets/sprites/player.png');
 }
 
+// --- 3) Stage 2 props: each is its own 16x16 PNG -------------------------
+// Kept deliberately simple and colour-coded so they read as distinct objects
+// and none of them look like the tan brick wall.
+
+// Coffee pot: dark carafe with a handle and a little red "on" light.
+function buildCoffeePot() {
+  const png = makeImage(16, 16);
+  fillRect(png, 4, 4, 8, 10, [40, 40, 48]);      // body
+  strokeRect(png, 4, 4, 8, 10, [20, 20, 26]);    // outline
+  fillRect(png, 5, 3, 6, 2, [70, 70, 82]);       // lid
+  fillRect(png, 12, 6, 2, 4, [40, 40, 48]);      // handle (right)
+  setPixel(png, 13, 7, [20, 20, 26]);
+  setPixel(png, 13, 8, [20, 20, 26]);
+  fillRect(png, 6, 10, 4, 3, [120, 70, 40]);     // coffee window
+  setPixel(png, 6, 12, [220, 60, 50]);           // red power light
+  save(png, 'public/assets/sprites/coffee_pot.png');
+}
+
+// Folder: bright manila folder with a darker tab, clearly not wall-coloured.
+function buildFolder() {
+  const png = makeImage(16, 16);
+  fillRect(png, 2, 6, 3, 2, [200, 170, 90]);     // tab
+  fillRect(png, 2, 7, 12, 7, [235, 205, 120]);   // folder body
+  strokeRect(png, 2, 7, 12, 7, [150, 120, 60]);  // outline
+  fillRect(png, 4, 9, 8, 1, [150, 120, 60]);     // paper line
+  fillRect(png, 4, 11, 6, 1, [150, 120, 60]);    // paper line
+  save(png, 'public/assets/sprites/folder.png');
+}
+
+// Desk: brown wooden desk seen top-down, with a lighter top surface.
+function buildDesk() {
+  const png = makeImage(16, 16);
+  fillRect(png, 1, 3, 14, 11, [92, 62, 38]);     // desk body
+  strokeRect(png, 1, 3, 14, 11, [58, 38, 22]);   // outline
+  fillRect(png, 3, 5, 10, 5, [140, 100, 62]);    // lighter desktop
+  fillRect(png, 4, 11, 3, 2, [58, 38, 22]);      // drawer handles
+  fillRect(png, 9, 11, 3, 2, [58, 38, 22]);
+  save(png, 'public/assets/sprites/desk.png');
+}
+
 buildTileset();
 buildPlayer();
+buildCoffeePot();
+buildFolder();
+buildDesk();
 console.log('done');
