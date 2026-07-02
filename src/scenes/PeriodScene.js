@@ -48,6 +48,15 @@ export default class PeriodScene extends Phaser.Scene {
     this.map = map;
     this.wallsLayer = wallsLayer;
 
+    // Make every non-empty tile in the walls layer solid. The walls layer only
+    // ever contains wall tiles (gid 2) and empty cells, so "everything that
+    // isn't empty" is exactly the collidable walls.
+    wallsLayer.setCollisionByExclusion([-1]);
+
+    // Confine physics (and therefore the player) to the map, not just the
+    // small camera viewport, so setCollideWorldBounds keeps them inside the room.
+    this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
     // Spawn the player at the centre of the chosen start tile.
     this.player = new Player(
       this,
@@ -55,8 +64,8 @@ export default class PeriodScene extends Phaser.Scene {
       SPAWN_TILE_Y * map.tileHeight + map.tileHeight / 2
     );
 
-    // NOTE (checkpoint 5): wall collision is added next; for now the player
-    // can walk through walls, which is expected at this point.
+    // Stop the player from walking through walls.
+    this.physics.add.collider(this.player, wallsLayer);
   }
 
   update() {

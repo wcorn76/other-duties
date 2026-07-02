@@ -28,6 +28,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     // Don't let the player walk off the edge of the map.
     this.setCollideWorldBounds(true);
 
+    // Shrink the collision box to roughly the character's feet. This makes
+    // movement feel right for a top-down view and lets them fit through
+    // one-tile gaps. The visible sprite is unchanged; only the hitbox shrinks.
+    this.body.setSize(12, 10);
+    this.body.setOffset(2, 13);
+
     // Which way we're currently looking; used to pick the idle frame.
     this.facing = 'down';
 
