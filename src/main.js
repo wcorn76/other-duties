@@ -3,6 +3,7 @@
 import Phaser from 'phaser';
 import BootScene from './scenes/BootScene.js';
 import TitleScene from './scenes/TitleScene.js';
+import PeriodScene from './scenes/PeriodScene.js';
 
 const config = {
   type: Phaser.AUTO,        // Let Phaser pick WebGL or Canvas automatically.
@@ -21,8 +22,10 @@ const config = {
     autoCenter: Phaser.Scale.CENTER_BOTH, // Center it horizontally and vertically.
   },
 
-  // Scenes run in the order listed here: Boot first, then Title.
-  scene: [BootScene, TitleScene],
+  // Scenes run in the order listed here: Boot first, then Title, then the
+  // playable period (the test room). Only Boot auto-starts; it hands off from
+  // there, and Title starts the period when a key is pressed.
+  scene: [BootScene, TitleScene, PeriodScene],
 };
 
 new Phaser.Game(config);
