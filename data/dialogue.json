@@ -1,0 +1,80 @@
+{
+  "washington_p1": {
+    "portrait": "washington",
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "npc": "Oh good, an administrator. The copier ate my quiz. Again.",
+        "choices": [
+          { "text": "I'll put in a ticket.", "next": "n2a" },
+          { "text": "Have you tried off and on?", "next": "n2b" },
+          { "text": "That copier has beaten better people than us.", "next": "n2c" }
+        ]
+      },
+      "n2a": {
+        "npc": "A ticket. So the next ice age, then.",
+        "choices": [
+          { "text": "I'll mark it urgent.", "next": "n3" },
+          { "text": "Two ice ages, tops.", "next": "n3" }
+        ]
+      },
+      "n2b": {
+        "npc": "I've done it so many times it's basically meditation.",
+        "choices": [
+          { "text": "Namaste.", "next": "n3" },
+          { "text": "Try kicking it. Professionally.", "next": "n3" }
+        ]
+      },
+      "n2c": {
+        "npc": "Finally, someone who gets it.",
+        "choices": [
+          { "text": "We'll get through this.", "next": "n3" },
+          { "text": "Solidarity.", "next": "n3" }
+        ]
+      },
+      "n3": {
+        "npc": "Thanks. You're the only one who listens.",
+        "end": true
+      }
+    }
+  },
+  "prince_p1": {
+    "portrait": "prince",
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "npc": "There you are. The copier's out of paper and I refuse to negotiate with it empty-handed.",
+        "choices": [
+          { "text": "I can grab you a stack.", "next": "n2a" },
+          { "text": "Have you checked the supply closet?", "next": "n2b" },
+          { "text": "The copier fears you. Use that.", "next": "n2c" }
+        ]
+      },
+      "n2a": {
+        "npc": "A hero. Do you know what a full paper tray does for morale?",
+        "choices": [
+          { "text": "Rebuilds civilizations.", "next": "n3" },
+          { "text": "More than the staff meeting did.", "next": "n3" }
+        ]
+      },
+      "n2b": {
+        "npc": "The supply closet and I are not on speaking terms since the toner incident.",
+        "choices": [
+          { "text": "Say no more.", "next": "n3" },
+          { "text": "We don't talk about the toner incident.", "next": "n3" }
+        ]
+      },
+      "n2c": {
+        "npc": "Oh, it fears me. But fear without paper is just a jammed feeder.",
+        "choices": [
+          { "text": "Deep. Let me fix that.", "next": "n3" },
+          { "text": "Put that on a poster.", "next": "n3" }
+        ]
+      },
+      "n3": {
+        "npc": "Here — take this stack of paper to the copier and we'll both be heroes. Go.",
+        "end": true
+      }
+    }
+  }
+}
