@@ -1,0 +1,8 @@
+# Dependencies installed by npm — regenerated with `npm install`, not committed.
+node_modules/
+
+# Production build output — regenerated with `npm run build`, not committed.
+dist/
+
+# macOS Finder metadata — junk files, never useful in a repo.
+.DS_Store
