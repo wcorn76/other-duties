@@ -9,6 +9,11 @@
 //   public/assets/sprites/coffee_pot.png   (prop, 16x16)  [Stage 2]
 //   public/assets/sprites/folder.png        (prop, 16x16)  [Stage 2]
 //   public/assets/sprites/desk.png          (prop, 16x16)  [Stage 2]
+//   public/assets/sprites/npc.png           (NPC body, 16x24 idle, tintable) [Stage 3]
+//   public/assets/sprites/portrait_*.png    (dialogue portraits, 48x48)       [Stage 3]
+//   public/assets/sprites/trash.png         (prop, 16x16)                     [Stage 3]
+//   public/assets/sprites/stack_of_paper.png(carriable item, 16x16)           [Stage 3]
+//   public/assets/sprites/copier.png        (accepts target, 16x24)           [Stage 3]
 // The map JSON is written by a separate step; see gen-placeholder-map.mjs.
 
 import { PNG } from 'pngjs';
@@ -177,9 +182,102 @@ function buildDesk() {
   save(png, 'public/assets/sprites/desk.png');
 }
 
+// --- Stage 3 -------------------------------------------------------------
+
+// A tiny 5x7 pixel font, just the few capital letters we need for portrait
+// initials. Each glyph is 7 rows of a 5-wide bit string ('1' = pixel).
+const FONT_5x7 = {
+  P: ['11110', '10001', '10001', '11110', '10000', '10000', '10000'],
+  W: ['10001', '10001', '10001', '10101', '10101', '11011', '01010'],
+};
+
+// Draw one glyph at (ox,oy), each font pixel scaled to `scale` real pixels.
+function drawGlyph(png, glyph, ox, oy, scale, colour) {
+  glyph.forEach((rowStr, row) => {
+    [...rowStr].forEach((bit, col) => {
+      if (bit === '1') {
+        fillRect(png, ox + col * scale, oy + row * scale, scale, scale, colour);
+      }
+    });
+  });
+}
+
+// A dialogue portrait: 48x48, a solid colour panel + a white initial so the
+// two speakers are obviously different at a glance.
+function buildPortrait(id, letter, bg) {
+  const png = makeImage(48, 48);
+  fillRect(png, 0, 0, 48, 48, bg);
+  strokeRect(png, 0, 0, 48, 48, [20, 20, 26]);
+  // Centre the 5x7 glyph scaled by 5 -> 25x35, roughly centred.
+  drawGlyph(png, FONT_5x7[letter], 12, 7, 5, [255, 255, 255]);
+  save(png, `public/assets/sprites/portrait_${id}.png`);
+}
+
+// A neutral NPC body (16x24 idle). Kept light/greyish so a per-NPC tint reads.
+function buildNpc() {
+  const png = makeImage(16, 24);
+  const SKIN = [232, 200, 170];
+  const BODY = [235, 235, 240]; // near-white so tint colours it strongly
+  const LEG = [180, 180, 190];
+  const SHOE = [40, 40, 48];
+  fillRect(png, 5, 2, 6, 6, SKIN);       // head
+  fillRect(png, 5, 2, 6, 2, [120, 100, 80]); // hair fringe
+  setPixel(png, 6, 5, [20, 20, 24]);      // eyes
+  setPixel(png, 9, 5, [20, 20, 24]);
+  fillRect(png, 4, 8, 8, 7, BODY);        // torso
+  fillRect(png, 3, 8, 1, 6, SKIN);        // arms
+  fillRect(png, 12, 8, 1, 6, SKIN);
+  fillRect(png, 5, 15, 2, 5, LEG);        // legs
+  fillRect(png, 9, 15, 2, 5, LEG);
+  fillRect(png, 5, 20, 2, 2, SHOE);       // feet
+  fillRect(png, 9, 20, 2, 2, SHOE);
+  save(png, 'public/assets/sprites/npc.png');
+}
+
+// Litter: a crumpled grey paper ball, clearly not floor or wall.
+function buildTrash() {
+  const png = makeImage(16, 16);
+  fillRect(png, 4, 5, 8, 7, [200, 200, 205]); // paper wad
+  strokeRect(png, 4, 5, 8, 7, [120, 120, 128]);
+  setPixel(png, 6, 7, [130, 130, 140]);        // crease shadows
+  setPixel(png, 9, 8, [130, 130, 140]);
+  setPixel(png, 7, 10, [130, 130, 140]);
+  fillRect(png, 3, 11, 10, 1, [110, 110, 120]); // squashed bottom
+  save(png, 'public/assets/sprites/trash.png');
+}
+
+// A neat stack of white paper (the item you carry to the copier).
+function buildStackOfPaper() {
+  const png = makeImage(16, 16);
+  fillRect(png, 3, 4, 11, 9, [245, 245, 245]);  // stack
+  strokeRect(png, 3, 4, 11, 9, [150, 150, 155]);
+  fillRect(png, 3, 6, 11, 1, [200, 200, 205]);  // sheet lines
+  fillRect(png, 3, 8, 11, 1, [200, 200, 205]);
+  fillRect(png, 3, 10, 11, 1, [200, 200, 205]);
+  save(png, 'public/assets/sprites/stack_of_paper.png');
+}
+
+// A copier: a tall grey machine with a paper tray and a green ready light.
+function buildCopier() {
+  const png = makeImage(16, 24);
+  fillRect(png, 1, 3, 14, 19, [120, 124, 132]);  // body
+  strokeRect(png, 1, 3, 14, 19, [70, 74, 82]);
+  fillRect(png, 3, 5, 10, 4, [80, 84, 92]);       // lid/top
+  setPixel(png, 12, 6, [90, 230, 120]);           // green ready light
+  fillRect(png, 3, 12, 10, 2, [50, 52, 60]);      // control slot
+  fillRect(png, 2, 17, 12, 3, [150, 154, 162]);   // paper tray
+  save(png, 'public/assets/sprites/copier.png');
+}
+
 buildTileset();
 buildPlayer();
 buildCoffeePot();
 buildFolder();
 buildDesk();
+buildNpc();
+buildPortrait('washington', 'W', [56, 120, 120]); // teal
+buildPortrait('prince', 'P', [130, 80, 150]);       // purple
+buildTrash();
+buildStackOfPaper();
+buildCopier();
 console.log('done');
