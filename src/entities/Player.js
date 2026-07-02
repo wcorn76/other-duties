@@ -62,6 +62,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  // Shove the player in a direction for a short time (used when they take a
+  // hit). During the knockback window, update() lets them slide instead of
+  // reading input, so the shove is actually felt.
+  knockback(vx, vy, durationMs) {
+    this.knockbackUntil = this.scene.time.now + durationMs;
+    this.setVelocity(vx, vy);
+  }
+
   // Called every frame by the scene. Reads input and moves/animates.
   update() {
     // Freeze the player while play is frozen (a conversation or a UI panel is
@@ -70,6 +78,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.setVelocity(0, 0);
       this.anims.stop();
       this.setFrame(IDLE_FRAME[this.facing]);
+      return;
+    }
+
+    // Mid-knockback: keep sliding with the shove velocity, ignore input.
+    if (this.knockbackUntil && this.scene.time.now < this.knockbackUntil) {
       return;
     }
 

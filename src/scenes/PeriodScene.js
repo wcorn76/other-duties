@@ -15,6 +15,7 @@ import InteractionSystem from '../systems/interaction.js';
 import DetentionSlip from '../systems/detentionSlip.js';
 import ObjectiveTracker from '../systems/objectives.js';
 import Score from '../systems/score.js';
+import Composure, { DAMAGE_PER_HIT, IFRAME_MS } from '../systems/composure.js';
 import Hud from '../ui/hud.js';
 import Panel from '../ui/panel.js';
 import DialogueSystem, { dialoguePortraitAssets } from '../systems/dialogue.js';
@@ -37,6 +38,10 @@ const STUDENT_SPAWNS = [
   { id: 'student_c', x: 108, y: 152 },
   { id: 'student_rowdy', x: 224, y: 108, canDamage: true, tint: 0xff8080 },
 ];
+
+// Response to taking a hit (the composure damage itself is in composure.js).
+const KNOCKBACK_STRENGTH = 170; // px/sec shove away from the attacker
+const KNOCKBACK_MS = 200;       // how long the shove lasts
 
 export default class PeriodScene extends Phaser.Scene {
   constructor() {
@@ -148,6 +153,20 @@ export default class PeriodScene extends Phaser.Scene {
       this.doneCount = done;
     });
 
+    // --- composure / hearts (live in the HUD) ---
+    this.composure = new Composure({
+      onChange: (cur, max) => this.hud.setHearts(cur, max),
+      onFail: () => this.onComposureLost(),
+    });
+    this.hud.setHearts(this.composure.getHearts(), this.composure.max);
+
+    // Any student flagged canDamage hurts the player on contact.
+    for (const student of this.students) {
+      if (student.canDamage) {
+        this.physics.add.overlap(this.player, student, () => this.onPlayerHit(student));
+      }
+    }
+
     // find_use "givers": the content layer owns this now (talking to the giver
     // hands over the item into the carry slot).
     installTaskWiring(period.objectives, this.bus, this.interaction);
@@ -173,6 +192,49 @@ export default class PeriodScene extends Phaser.Scene {
   // predicate, so there is exactly ONE freeze path.
   isPlayFrozen() {
     return (this.dialogue && this.dialogue.isOpen()) || this.uiBlocked;
+  }
+
+  // Called when the player overlaps a damaging student. Composure owns the
+  // i-frame logic (repeat contact during i-frames is ignored); here we react to
+  // a hit that actually LANDS with knockback + a flash.
+  onPlayerHit(student) {
+    if (this.uiBlocked) return; // ignore while a panel owns the screen
+    const res = this.composure.damage(DAMAGE_PER_HIT, this.time.now);
+    if (res.blocked) return;
+
+    // Shove the player away from the student.
+    const angle = Phaser.Math.Angle.Between(student.x, student.y, this.player.x, this.player.y);
+    this.player.knockback(
+      Math.cos(angle) * KNOCKBACK_STRENGTH,
+      Math.sin(angle) * KNOCKBACK_STRENGTH,
+      KNOCKBACK_MS
+    );
+
+    // Blink the player for the i-frame window so invulnerability is visible.
+    this.flashPlayer();
+  }
+
+  // Blink the player's alpha for roughly the i-frame duration.
+  flashPlayer() {
+    this.tweens.add({
+      targets: this.player,
+      alpha: 0.3,
+      duration: 100,
+      yoyo: true,
+      repeat: Math.max(1, Math.floor(IFRAME_MS / 200) - 1),
+      onComplete: () => this.player.setAlpha(1),
+    });
+  }
+
+  // Composure hit zero: freeze play and show the fail message, then Title.
+  // Mirrors the period-complete flow.
+  onComposureLost() {
+    this.uiBlocked = true;
+    this.panel = Panel.message(this, {
+      main: 'Composure lost',
+      sub: 'The day got the better of you.',
+      onDismiss: () => this.scene.start('TitleScene'),
+    });
   }
 
   // Fires once all objectives are complete (via the tracker's onComplete).
