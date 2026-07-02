@@ -66,6 +66,11 @@ export default class PeriodScene extends Phaser.Scene {
 
     // Stop the player from walking through walls.
     this.physics.add.collider(this.player, wallsLayer);
+
+    // Camera: follow the player but never scroll past the edges of the map,
+    // and snap to whole pixels so the pixel art stays crisp (no shimmering).
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    this.cameras.main.startFollow(this.player, true); // true = round to pixels
   }
 
   update() {
