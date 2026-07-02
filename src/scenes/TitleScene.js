@@ -20,7 +20,7 @@ export default class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Smaller subtitle underneath.
-    this.add.text(centerX, centerY + 12, 'pre-alpha — Stage 0', {
+    this.add.text(centerX, centerY + 12, 'pre-alpha — Stage 0 (live!)', {
       fontFamily: 'monospace',
       fontSize: '8px',
       color: '#8a8a99',
