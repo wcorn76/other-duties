@@ -189,6 +189,7 @@ function buildDesk() {
 const FONT_5x7 = {
   P: ['11110', '10001', '10001', '11110', '10000', '10000', '10000'],
   W: ['10001', '10001', '10001', '10101', '10101', '11011', '01010'],
+  L: ['10000', '10000', '10000', '10000', '10000', '10000', '11111'],
 };
 
 // Draw one glyph at (ox,oy), each font pixel scaled to `scale` real pixels.
@@ -277,6 +278,7 @@ buildDesk();
 buildNpc();
 buildPortrait('washington', 'W', [56, 120, 120]); // teal
 buildPortrait('prince', 'P', [130, 80, 150]);       // purple
+buildPortrait('lewis', 'L', [200, 120, 60]);         // amber
 buildTrash();
 buildStackOfPaper();
 buildCopier();

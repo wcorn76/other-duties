@@ -4,15 +4,20 @@
 // "done" as matching gameplay events arrive. When ALL are done, it fires
 // onComplete (and an 'objectives:allcomplete' event).
 //
-// Objective 'type' vocabulary: interact / talk / collect / reach / deliver / meter.
-//   Implemented this stage: `interact` and `deliver`.
-//   The rest are left as clearly-marked SEAMS below — later stages fill them in.
+// Objective 'type' vocabulary: interact / deliver / talk / trash / find_use,
+// with `reach` and `meter` still left as clearly-marked SEAMS below.
 // IMPORTANT: do NOT hardcode any specific objective here. This file only knows
 // the generic shapes; the actual objectives come in as data.
 //
 // Objective spec shapes it understands:
 //   { id, type:'interact', target:<propId>, text }
 //   { id, type:'deliver',  item:<itemId>, target:<propId>, text }
+//   { id, type:'talk',     target:<npcId>, text }
+//   { id, type:'trash',    count:<n>, text, item?:<litterType> }
+//       count-based; the optional `item` filters which collect:done events
+//       count toward it (omit `item` to count ANY litter).
+//   { id, type:'find_use', item:<itemId>, useTarget:<propId>, giver?, text }
+//       completed by the same deliver:done event as `deliver`.
 
 export default class ObjectiveTracker {
   constructor(bus, objectives, onComplete) {
@@ -50,8 +55,8 @@ export default class ObjectiveTracker {
 
     // collect:done { item } -> counts toward 'trash' objectives (collect N).
     // These are count-based rather than one-shot, so they get their own path.
-    this.bus.on('collect:done', () => {
-      this.progressTrash();
+    this.bus.on('collect:done', ({ item }) => {
+      this.progressTrash(item);
     });
 
     // ----------------------------------------------------------------------
@@ -67,10 +72,13 @@ export default class ObjectiveTracker {
 
   // Count-based progress for 'trash' objectives: each collect:done ticks every
   // open trash objective up by one; it completes when it reaches its count.
-  progressTrash() {
+  // If an objective has an `item` (litter type), only matching collect:done
+  // events count toward it; objectives without `item` count any litter.
+  progressTrash(item) {
     let changed = false;
     for (const o of this.objectives) {
       if (o.done || o.type !== 'trash') continue;
+      if (o.item != null && o.item !== item) continue; // litter-type filter
       o.progress = (o.progress || 0) + 1;
       if (o.progress >= o.count) o.done = true;
       changed = true;

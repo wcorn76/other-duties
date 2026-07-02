@@ -76,5 +76,20 @@
         "end": true
       }
     }
+  },
+  "lewis_p1": {
+    "portrait": "lewis",
+    "start": "n1",
+    "nodes": {
+      "n1": {
+        "npc": "The thermostat's locked at 68 and my room is an icebox.",
+        "choices": [
+          { "text": "I'll put in a work order.", "next": "n2a" },
+          { "text": "Have you tried a sweater?", "next": "n2b" }
+        ]
+      },
+      "n2a": { "npc": "A miracle worker. Thank you.", "end": true },
+      "n2b": { "npc": "...You sound like the last three principals.", "end": true }
+    }
   }
 }

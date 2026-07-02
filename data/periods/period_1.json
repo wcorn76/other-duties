@@ -1,0 +1,25 @@
+{
+  "id": "period_1",
+  "name": "First Period",
+  "spawn": { "x": 48, "y": 110 },
+  "pickCount": 3,
+  "taskPool": [
+    { "id": "talk_washington", "type": "talk", "target": "washington", "dialogue": "washington_p1", "text": "Check in with Mrs. Washington", "needs": ["washington"] },
+    { "id": "talk_lewis", "type": "talk", "target": "lewis", "dialogue": "lewis_p1", "text": "See what Mr. Lewis needs", "needs": ["lewis"] },
+    { "id": "trash_hall", "type": "trash", "item": "litter_hall", "count": 3, "text": "Clear the mess by the lockers", "needs": ["trash_h1", "trash_h2", "trash_h3"] },
+    { "id": "trash_lounge", "type": "trash", "item": "litter_lounge", "count": 2, "text": "Tidy the teachers' lounge", "needs": ["trash_l1", "trash_l2"] },
+    { "id": "copier_fix", "type": "find_use", "giver": "prince", "item": "stack_of_paper", "useTarget": "copier", "text": "Sort out the copier — again", "needs": ["prince", "copier"] }
+  ],
+  "entities": [
+    { "type": "npc", "id": "washington", "sprite": "npc", "x": 110, "y": 56, "dialogue": "washington_p1", "tint": 6738128 },
+    { "type": "npc", "id": "lewis", "sprite": "npc", "x": 300, "y": 60, "dialogue": "lewis_p1", "tint": 13673062 },
+    { "type": "npc", "id": "prince", "sprite": "npc", "x": 200, "y": 150, "dialogue": "prince_p1", "tint": 13391036 },
+    { "type": "prop", "id": "copier", "sprite": "copier", "x": 300, "y": 150, "verb": "accepts", "accepts": "stack_of_paper" },
+    { "type": "prop", "id": "trash_h1", "sprite": "trash", "x": 80, "y": 180, "verb": "trash", "item": "litter_hall" },
+    { "type": "prop", "id": "trash_h2", "sprite": "trash", "x": 120, "y": 186, "verb": "trash", "item": "litter_hall" },
+    { "type": "prop", "id": "trash_h3", "sprite": "trash", "x": 150, "y": 170, "verb": "trash", "item": "litter_hall" },
+    { "type": "prop", "id": "trash_l1", "sprite": "trash", "x": 255, "y": 62, "verb": "trash", "item": "litter_lounge" },
+    { "type": "prop", "id": "trash_l2", "sprite": "trash", "x": 285, "y": 92, "verb": "trash", "item": "litter_lounge" }
+  ],
+  "onComplete": { "cutscene": "office_period1_end", "next": "hall_duty_1" }
+}
