@@ -176,9 +176,9 @@ export default class PeriodScene extends Phaser.Scene {
     // matches the random subset). Dismiss with E/Enter to begin.
     this.uiBlocked = true;
     this.panel = Panel.todoList(this, {
-      // buildPeriod() doesn't carry `name` through, so fall back to the raw
-      // period file's name (then a generic default) rather than changing tasks.js.
-      title: (this.period && this.period.name) || period1.name || 'To-Do',
+      // buildPeriod() now carries `name` through, so read it from the built
+      // period object (falling back to a generic default just in case).
+      title: (this.period && this.period.name) || 'To-Do',
       lines: this.tracker.getObjectives().map((o) => o.text),
       onDismiss: () => {
         this.panel = null;

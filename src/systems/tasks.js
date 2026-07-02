@@ -28,8 +28,10 @@ export function pickTasks(pool, count = PICK_COUNT) {
 }
 
 // Turn a period's data into the concrete run for this playthrough.
-// period = { spawn:{x,y}, taskPool:[...taskDefs], pickCount?, entities:[...], onComplete }
-// Returns { spawn, objectives, entities, onComplete } ready for the scene.
+// period = { id?, name?, spawn:{x,y}, taskPool:[...taskDefs], pickCount?, entities:[...], onComplete }
+// Returns { id, name, spawn, objectives, entities, onComplete } ready for the
+// scene — metadata (id/name) is carried through so the UI reads it from the
+// built object instead of the raw JSON.
 export function buildPeriod(period) {
   // a) how many tasks to draw
   const count = period.pickCount ?? PICK_COUNT;
@@ -50,8 +52,10 @@ export function buildPeriod(period) {
   }
   const entities = period.entities.filter((e) => neededIds.has(e.id));
 
-  // e) the concrete period run
+  // e) the concrete period run (metadata carried through for the UI)
   return {
+    id: period.id,
+    name: period.name,
     spawn: period.spawn,
     objectives,
     entities,
