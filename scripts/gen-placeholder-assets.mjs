@@ -14,6 +14,7 @@
 //   public/assets/sprites/trash.png         (prop, 16x16)                     [Stage 3]
 //   public/assets/sprites/stack_of_paper.png(carriable item, 16x16)           [Stage 3]
 //   public/assets/sprites/copier.png        (accepts target, 16x24)           [Stage 3]
+//   public/assets/sprites/student.png        (citeable student, 16x24, tintable)[Stage 5]
 // The map JSON is written by a separate step; see gen-placeholder-map.mjs.
 
 import { PNG } from 'pngjs';
@@ -258,6 +259,32 @@ function buildStackOfPaper() {
   save(png, 'public/assets/sprites/stack_of_paper.png');
 }
 
+// A student body (16x24 idle). Kept light/greyish so a per-student tint reads,
+// with backpack straps + a cap so it reads as a "kid", distinct from teachers.
+function buildStudent() {
+  const png = makeImage(16, 24);
+  const SKIN = [232, 200, 170];
+  const HOODIE = [225, 225, 230]; // near-white so a tint colours it strongly
+  const STRAP = [90, 90, 100];    // backpack straps
+  const LEG = [90, 95, 110];
+  const SHOE = [40, 40, 48];
+  const CAP = [110, 90, 70];
+  fillRect(png, 5, 3, 6, 5, SKIN);        // head
+  fillRect(png, 4, 2, 8, 2, CAP);          // cap brim
+  setPixel(png, 6, 6, [20, 20, 24]);       // eyes
+  setPixel(png, 9, 6, [20, 20, 24]);
+  fillRect(png, 4, 9, 8, 7, HOODIE);       // hoodie torso
+  fillRect(png, 6, 9, 1, 7, STRAP);        // left backpack strap
+  fillRect(png, 9, 9, 1, 7, STRAP);        // right backpack strap
+  fillRect(png, 3, 9, 1, 6, SKIN);         // arms
+  fillRect(png, 12, 9, 1, 6, SKIN);
+  fillRect(png, 5, 16, 2, 5, LEG);         // legs
+  fillRect(png, 9, 16, 2, 5, LEG);
+  fillRect(png, 5, 21, 2, 2, SHOE);        // feet
+  fillRect(png, 9, 21, 2, 2, SHOE);
+  save(png, 'public/assets/sprites/student.png');
+}
+
 // A copier: a tall grey machine with a paper tray and a green ready light.
 function buildCopier() {
   const png = makeImage(16, 24);
@@ -282,4 +309,5 @@ buildPortrait('lewis', 'L', [200, 120, 60]);         // amber
 buildTrash();
 buildStackOfPaper();
 buildCopier();
+buildStudent();
 console.log('done');

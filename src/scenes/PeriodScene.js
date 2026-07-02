@@ -10,6 +10,7 @@ import Phaser from 'phaser';
 import Player from '../entities/Player.js';
 import Prop from '../entities/Prop.js';
 import Npc from '../entities/Npc.js';
+import Student from '../entities/Student.js';
 import InteractionSystem from '../systems/interaction.js';
 import ObjectiveTracker from '../systems/objectives.js';
 import Hud from '../ui/hud.js';
@@ -23,6 +24,17 @@ const MAP_KEY = 'test-room';
 const TILESET_IMAGE_KEY = 'tileset';
 // This must match the tileset "name" embedded in the Tiled JSON map.
 const TILESET_NAME_IN_MAP = 'tiles';
+
+// Test students for Stage 5. These are spawned every run (independent of which
+// tasks were picked) so citing/composure are always exercisable. `student_rowdy`
+// can DAMAGE the player on contact. Stage 6 (Hall Duty) will replace these with
+// data-driven student spawns; kept in-scene for now as a simple test harness.
+const STUDENT_SPAWNS = [
+  { id: 'student_a', x: 140, y: 100 },
+  { id: 'student_b', x: 180, y: 132 },
+  { id: 'student_c', x: 108, y: 152 },
+  { id: 'student_rowdy', x: 224, y: 108, canDamage: true, tint: 0xff8080 },
+];
 
 export default class PeriodScene extends Phaser.Scene {
   constructor() {
@@ -38,8 +50,9 @@ export default class PeriodScene extends Phaser.Scene {
       frameHeight: 24,
     });
 
-    // Shared NPC body + the portraits our conversations need.
+    // Shared NPC + student bodies + the portraits our conversations need.
     this.load.image('npc', 'assets/sprites/npc.png');
+    this.load.image('student', 'assets/sprites/student.png');
     for (const a of dialoguePortraitAssets()) this.load.image(a.key, a.path);
 
     // IMPORTANT: buildPeriod() picks a RANDOM subset at create() time, so we
@@ -100,6 +113,14 @@ export default class PeriodScene extends Phaser.Scene {
       }
     }
 
+    // --- students (test harness for citing + composure) ---
+    this.students = [];
+    for (const spec of STUDENT_SPAWNS) {
+      const student = new Student(this, spec);
+      this.physics.add.collider(student, wallsLayer);
+      this.students.push(student);
+    }
+
     // --- objectives + HUD ---
     this.tracker = new ObjectiveTracker(
       this.bus,
@@ -157,5 +178,8 @@ export default class PeriodScene extends Phaser.Scene {
     if (this.panel) this.panel.update();
     if (this.interaction) this.interaction.update();
     if (this.player) this.player.update();
+    if (this.students) {
+      for (const s of this.students) if (s.active) s.update();
+    }
   }
 }
