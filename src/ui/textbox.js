@@ -5,10 +5,10 @@
 // so it stays put while the world scrolls, and drawn on top of everything.
 
 // Layout, in the game's internal 384x216 pixels.
-const PANEL = { x: 4, y: 150, w: 376, h: 62 };
-const PORTRAIT = { x: 10, y: 158, size: 48 };
-const NPC_TEXT = { x: 66, y: 156, wrap: 306 };
-const CHOICES = { x: 70, y: 186, lineHeight: 11 };
+const PANEL = { x: 4, y: 146, w: 376, h: 66 };
+const PORTRAIT = { x: 10, y: 154, size: 48 };
+const NPC_TEXT = { x: 66, y: 152, wrap: 306 };
+const CHOICES = { x: 70, y: 182, lineHeight: 10 };
 const DEPTH = 5000;
 const MAX_CHOICES = 3;
 
