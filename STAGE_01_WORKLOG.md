@@ -36,3 +36,26 @@ Times are local machine time. Date: 2026-07-01.
 - `src/entities/Player.js`: Arcade sprite. Reads WASD + arrow keys, plays `walk-down/left/right/up` (2-frame) or shows the idle frame per facing.
 - **Decision / deviation:** enabled `physics: { default: 'arcade', gravity 0 }` in `main.js` now (checkpoint 4) rather than checkpoint 5, because the Player uses velocity-based movement. No wall collider added yet, so walking through walls is still expected here — matches the brief's checkpoint-4 state.
 - `npm run build` clean. Committing as "stage 1: player + movement (WASD/arrows, no collision yet)".
+
+## Checkpoint 5 — Wall collision
+
+- Gave the Player a smaller "feet" hitbox (`body.setSize(12,10)`, offset `(2,13)`) so it reads as top-down and can pass through one-tile gaps.
+- In `PeriodScene`: `wallsLayer.setCollisionByExclusion([-1])` makes every non-empty walls-layer tile solid (the walls layer only holds wall tiles + empty, so this is exactly the walls). Set the physics world bounds to the map size, then added `physics.add.collider(player, wallsLayer)`.
+- `npm run build` clean. Committed: "stage 1: wall collision via arcade physics".
+
+## Checkpoint 6 — Camera follow
+
+- Camera `setBounds` to the map size and `startFollow(player, true)` (the `true` rounds to whole pixels). Build clean. Committed: "stage 1: camera follows player, clamped to map bounds".
+
+## Checkpoint 7 — Title flow + subtitle
+
+- TitleScene now shows "pre-alpha" (was "pre-alpha — Stage 0 (live!)") plus a "press any key to start" prompt, and starts `PeriodScene` on the first keypress or click (`input.keyboard.once('keydown')` / `input.once('pointerdown')`).
+- Build clean. Committed: "stage 1: title starts period on key/click; subtitle now pre-alpha".
+
+## Checkpoint 8 — Verify + recap
+
+- Confirmed final `npm run build` is clean (only the expected Phaser "chunk > 500 kB" advisory; that's a warning, not an error) and `dist/` is created.
+- **Runtime smoke test (extra, for owner confidence):** the Stage 0 dev server was still running on http://localhost:5173/. Used headless Chrome (already installed) to screenshot two things:
+  1. The title screen — renders "OTHER DUTIES AS ASSIGNED / pre-alpha / press any key to start".
+  2. The play scene — created a **temporary** `verify.html` that boots straight into `PeriodScene` (importing the real scene file, no changes to shipped code), screenshotted it, then **deleted** it. The screenshot showed the floor, the tan brick border + interior walls with doorway gaps, and the player at the spawn tile. So the map, tileset, and player sprite all load and render correctly at runtime.
+- Wrote `STAGE_01_RECAP.md`. **Did not push** — stopping here for owner review, per brief.
