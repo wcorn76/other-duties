@@ -14,6 +14,7 @@ import Student from '../entities/Student.js';
 import InteractionSystem from '../systems/interaction.js';
 import DetentionSlip from '../systems/detentionSlip.js';
 import ObjectiveTracker from '../systems/objectives.js';
+import Score from '../systems/score.js';
 import Hud from '../ui/hud.js';
 import Panel from '../ui/panel.js';
 import DialogueSystem, { dialoguePortraitAssets } from '../systems/dialogue.js';
@@ -133,6 +134,19 @@ export default class PeriodScene extends Phaser.Scene {
     // --- detention slip (primary gear, SPACE) ---
     this.slip = new DetentionSlip(this, this.player, this.bus);
     this.hud.setActiveGear('Slip');
+
+    // --- score (live in the HUD) ---
+    this.score = new Score({ onChange: (v) => this.hud.setScore(v) });
+    this.hud.setScore(this.score.getValue());
+    // Citing a student scores points.
+    this.bus.on('cite:done', () => this.score.addCite());
+    // Completing tasks scores a bonus: award for each newly-completed objective.
+    this.doneCount = 0;
+    this.bus.on('objective:updated', (list) => {
+      const done = list.filter((o) => o.done).length;
+      if (done > this.doneCount) this.score.addTaskComplete(done - this.doneCount);
+      this.doneCount = done;
+    });
 
     // find_use "givers": the content layer owns this now (talking to the giver
     // hands over the item into the carry slot).
