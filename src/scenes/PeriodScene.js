@@ -6,12 +6,17 @@
 // to load from a JSON descriptor instead of the single hardcoded key below.
 // That period-loader does NOT belong in Stage 1; see STAGE_01_RECAP.md.
 import Phaser from 'phaser';
+import Player from '../entities/Player.js';
 
 // Which map + tileset to load. Hardcoded for Stage 1 (one test room only).
 const MAP_KEY = 'test-room';
 const TILESET_IMAGE_KEY = 'tileset';
 // This must match the tileset "name" embedded in the Tiled JSON map.
 const TILESET_NAME_IN_MAP = 'tiles';
+
+// Where the player starts, in tile coordinates (kept clear of walls).
+const SPAWN_TILE_X = 3;
+const SPAWN_TILE_Y = 3;
 
 export default class PeriodScene extends Phaser.Scene {
   constructor() {
@@ -22,6 +27,12 @@ export default class PeriodScene extends Phaser.Scene {
     // The tileset picture and the map layout (in Tiled's JSON format).
     this.load.image(TILESET_IMAGE_KEY, 'assets/sprites/tileset.png');
     this.load.tilemapTiledJSON(MAP_KEY, 'assets/maps/test-room.json');
+
+    // The player sprite sheet: 16x24 frames laid out 3 columns x 4 rows.
+    this.load.spritesheet('player', 'assets/sprites/player.png', {
+      frameWidth: 16,
+      frameHeight: 24,
+    });
   }
 
   create() {
@@ -31,9 +42,25 @@ export default class PeriodScene extends Phaser.Scene {
 
     // Draw the two layers, floor first (underneath) then walls (on top).
     map.createLayer('floor', tiles, 0, 0);
-    map.createLayer('walls', tiles, 0, 0);
+    const wallsLayer = map.createLayer('walls', tiles, 0, 0);
 
     // Keep references for later checkpoints (collision, camera bounds).
     this.map = map;
+    this.wallsLayer = wallsLayer;
+
+    // Spawn the player at the centre of the chosen start tile.
+    this.player = new Player(
+      this,
+      SPAWN_TILE_X * map.tileWidth + map.tileWidth / 2,
+      SPAWN_TILE_Y * map.tileHeight + map.tileHeight / 2
+    );
+
+    // NOTE (checkpoint 5): wall collision is added next; for now the player
+    // can walk through walls, which is expected at this point.
+  }
+
+  update() {
+    // Drive the player's own per-frame logic (reading keys, animating).
+    if (this.player) this.player.update();
   }
 }

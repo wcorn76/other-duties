@@ -22,6 +22,14 @@ const config = {
     autoCenter: Phaser.Scale.CENTER_BOTH, // Center it horizontally and vertically.
   },
 
+  // Arcade Physics: the simple, fast movement/collision engine. We use it so
+  // the player can bump into walls. (This does not change the locked
+  // resolution/scale settings above.) Top-down game, so no gravity.
+  physics: {
+    default: 'arcade',
+    arcade: { gravity: { y: 0 } },
+  },
+
   // Scenes run in the order listed here: Boot first, then Title, then the
   // playable period (the test room). Only Boot auto-starts; it hands off from
   // there, and Title starts the period when a key is pressed.
