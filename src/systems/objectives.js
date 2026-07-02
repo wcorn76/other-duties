@@ -32,26 +32,53 @@ export default class ObjectiveTracker {
       this.completeWhere((o) => o.type === 'interact' && o.target === id);
     });
 
-    // deliver:done { item, target } -> completes a matching 'deliver' objective.
+    // deliver:done { item, target } -> completes a matching 'deliver' objective
+    // AND a matching 'find_use' objective (both verbs finish by delivering an
+    // item to a target; find_use just names its target `useTarget`).
     this.bus.on('deliver:done', ({ item, target }) => {
       this.completeWhere(
-        (o) => o.type === 'deliver' && o.item === item && o.target === target
+        (o) =>
+          (o.type === 'deliver' && o.item === item && o.target === target) ||
+          (o.type === 'find_use' && o.item === item && o.useTarget === target)
       );
     });
 
+    // talk:done { id } -> completes a 'talk' objective for that NPC.
+    this.bus.on('talk:done', ({ id }) => {
+      this.completeWhere((o) => o.type === 'talk' && o.target === id);
+    });
+
+    // collect:done { item } -> counts toward 'trash' objectives (collect N).
+    // These are count-based rather than one-shot, so they get their own path.
+    this.bus.on('collect:done', () => {
+      this.progressTrash();
+    });
+
     // ----------------------------------------------------------------------
-    // SEAMS for later stages (intentionally NOT implemented this stage).
-    // Uncomment + wire the matching systems when those verbs exist:
-    //
-    //   talk:    this.bus.on('talk:done', ({ id }) =>
-    //              this.completeWhere(o => o.type === 'talk' && o.target === id));
-    //   collect: this.bus.on('collect:done', ({ item }) =>
-    //              this.completeWhere(o => o.type === 'collect' && o.item === item));
-    //   reach:   this.bus.on('reach:done', ({ zone }) =>
-    //              this.completeWhere(o => o.type === 'reach' && o.target === zone));
-    //   meter:   a metering system will call completeWhere(...) when a tracked
-    //            value crosses the objective's threshold.
+    // SEAMS still open for later stages (intentionally NOT implemented):
+    //   reach:  this.bus.on('reach:done', ({ zone }) =>
+    //             this.completeWhere(o => o.type === 'reach' && o.target === zone));
+    //   meter:  a metering system will call completeWhere(...) when a tracked
+    //           value crosses the objective's threshold.
+    // (A generic 'collect item X' verb can reuse completeWhere like talk/deliver;
+    //  'trash' above is the count-based variant used this stage.)
     // ----------------------------------------------------------------------
+  }
+
+  // Count-based progress for 'trash' objectives: each collect:done ticks every
+  // open trash objective up by one; it completes when it reaches its count.
+  progressTrash() {
+    let changed = false;
+    for (const o of this.objectives) {
+      if (o.done || o.type !== 'trash') continue;
+      o.progress = (o.progress || 0) + 1;
+      if (o.progress >= o.count) o.done = true;
+      changed = true;
+    }
+    if (changed) {
+      this.bus.emit('objective:updated', this.getObjectives());
+      this.checkAllComplete();
+    }
   }
 
   // Mark every not-yet-done objective matching `pred` as complete.
@@ -79,7 +106,15 @@ export default class ObjectiveTracker {
   }
 
   // A read-only snapshot for the HUD (so it can't mutate our state).
+  // `count`/`progress` are included for count-based objectives (e.g. trash)
+  // so the HUD can show "(1/3)"; they are undefined for one-shot objectives.
   getObjectives() {
-    return this.objectives.map((o) => ({ id: o.id, text: o.text, done: o.done }));
+    return this.objectives.map((o) => ({
+      id: o.id,
+      text: o.text,
+      done: o.done,
+      count: o.count,
+      progress: o.progress || 0,
+    }));
   }
 }

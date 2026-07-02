@@ -28,8 +28,10 @@ export default class ObjectivesHud {
     this.lines.forEach((t) => t.destroy());
     this.lines = objectives.map((o, i) => {
       const box = o.done ? '[x]' : '[ ]';
+      // Show progress for count-based objectives, e.g. "Pick up the trash (1/3)".
+      const counter = o.count ? ` (${o.progress}/${o.count})` : '';
       return this.scene.add
-        .text(X, Y + i * LINE_HEIGHT, `${box} ${o.text}`, {
+        .text(X, Y + i * LINE_HEIGHT, `${box} ${o.text}${counter}`, {
           fontFamily: 'monospace',
           fontSize: '8px',
           color: o.done ? '#8fe38f' : '#ffffff',

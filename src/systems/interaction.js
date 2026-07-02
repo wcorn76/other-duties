@@ -70,6 +70,13 @@ export default class InteractionSystem {
 
   // Called every frame by the scene.
   update() {
+    // While a conversation is open, the player can't interact or move — the
+    // dialogue system owns input. Hide the prompt and bail out.
+    if (this.scene.dialogue && this.scene.dialogue.isOpen()) {
+      this.prompt.setVisible(false);
+      return;
+    }
+
     this.refreshNearest();
     this.refreshPrompt();
     this.refreshHeldSprite();
@@ -139,10 +146,40 @@ export default class InteractionSystem {
         this.deliver(prop);
         break;
 
-      // Later verbs (talk, etc.) will slot in here.
+      case 'talk':
+        // NPCs use this verb: open their conversation instead of a prop action.
+        if (this.scene.dialogue) this.scene.dialogue.start(prop.dialogue, prop.id);
+        break;
+
+      case 'trash':
+        // Litter: just remove it and count it — it is NOT carried (no slot used).
+        this.collectTrash(prop);
+        break;
+
       default:
         break;
     }
+  }
+
+  // Remove a trash prop from the world and report it collected.
+  collectTrash(prop) {
+    const item = prop.item || 'trash';
+    this.removeInteractable(prop);
+    prop.destroy();
+    this.bus.emit('collect:done', { item });
+  }
+
+  // Put an item straight into the carry slot (no world prop involved). Used by
+  // find_use "givers": talking to the giver grants the item.
+  // NOTE: Stage 4's tasks.js will own item-granting; for now PeriodScene calls
+  // this in response to talk:done.
+  giveItem(itemId) {
+    if (this.heldSprite) this.heldSprite.destroy(); // replace whatever we held
+    this.heldItem = itemId;
+    this.heldSprite = this.scene.add
+      .image(this.player.x, this.player.y + HELD_OFFSET_Y, itemId)
+      .setDepth(999);
+    this.bus.emit('pickup:done', { item: itemId });
   }
 
   // --- carry slot verbs ---------------------------------------------------
