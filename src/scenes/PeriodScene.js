@@ -1,22 +1,43 @@
-// The main "play" scene for Stage 1: it loads the test room and draws it.
-// A "period" is a chunk of the school day; for now there is exactly one
-// hardcoded test room so we can walk around and check the basics work.
-//
-// LATER STAGE: this scene will be data-driven — it will read which map/period
-// to load from a JSON descriptor instead of the single hardcoded key below.
-// That period-loader does NOT belong in Stage 1; see STAGE_01_RECAP.md.
+// The main "play" scene. It loads the test room, spawns the player and the
+// interactable props, and runs the interaction, carry, and objective systems
+// so the world has verbs: walk up to a thing, press E, an objective ticks off.
 import Phaser from 'phaser';
 import Player from '../entities/Player.js';
+import Prop from '../entities/Prop.js';
+import InteractionSystem from '../systems/interaction.js';
+import ObjectiveTracker from '../systems/objectives.js';
+import ObjectivesHud from '../ui/objectivesHud.js';
 
-// Which map + tileset to load. Hardcoded for Stage 1 (one test room only).
+// Which map + tileset to load. Hardcoded for now (one test room only).
 const MAP_KEY = 'test-room';
 const TILESET_IMAGE_KEY = 'tileset';
 // This must match the tileset "name" embedded in the Tiled JSON map.
 const TILESET_NAME_IN_MAP = 'tiles';
 
-// Where the player starts, in tile coordinates (kept clear of walls).
-const SPAWN_TILE_X = 3;
-const SPAWN_TILE_Y = 3;
+// -------------------------------------------------------------------------
+// DATA-DRIVEN SEAM: for now the scene's content (where the player starts, what
+// props exist, and the period's objectives) is defined inline here as a plain
+// config object. LATER STAGE: this will be read from a JSON period descriptor
+// instead of being hardcoded; the systems below already take it as data, so
+// only this block changes. The shapes here are the canon Stage 2 shapes.
+// -------------------------------------------------------------------------
+const TEST_CONFIG = {
+  // Where the player starts, in pixels. (Tile 3,3 -> 56,56.)
+  spawn: { x: 56, y: 56 },
+
+  // Props placed in the room.
+  entities: [
+    { type: 'prop', id: 'coffee_pot', sprite: 'coffee_pot', x: 64, y: 64, verb: 'use' },
+    { type: 'prop', id: 'folder', sprite: 'folder', x: 120, y: 96, verb: 'pickup', item: 'folder' },
+    { type: 'prop', id: 'desk', sprite: 'desk', x: 200, y: 64, verb: 'accepts', accepts: 'folder' },
+  ],
+
+  // The two things the player must do this period.
+  objectives: [
+    { id: 'coffee', type: 'interact', target: 'coffee_pot', text: 'Put the coffee out' },
+    { id: 'file', type: 'deliver', item: 'folder', target: 'desk', text: 'File the folder' },
+  ],
+};
 
 export default class PeriodScene extends Phaser.Scene {
   constructor() {
@@ -33,48 +54,76 @@ export default class PeriodScene extends Phaser.Scene {
       frameWidth: 16,
       frameHeight: 24,
     });
+
+    // Load every prop image referenced by the config (deduped by key).
+    for (const e of TEST_CONFIG.entities) {
+      this.load.image(e.sprite, `assets/sprites/${e.sprite}.png`);
+    }
   }
 
   create() {
-    // Build the tilemap from the loaded JSON and hook up the tileset image.
+    // --- map ---
     const map = this.make.tilemap({ key: MAP_KEY });
     const tiles = map.addTilesetImage(TILESET_NAME_IN_MAP, TILESET_IMAGE_KEY);
-
-    // Draw the two layers, floor first (underneath) then walls (on top).
     map.createLayer('floor', tiles, 0, 0);
     const wallsLayer = map.createLayer('walls', tiles, 0, 0);
-
-    // Keep references for later checkpoints (collision, camera bounds).
     this.map = map;
     this.wallsLayer = wallsLayer;
 
-    // Make every non-empty tile in the walls layer solid. The walls layer only
-    // ever contains wall tiles (gid 2) and empty cells, so "everything that
-    // isn't empty" is exactly the collidable walls.
+    // Every non-empty tile in the walls layer is solid.
     wallsLayer.setCollisionByExclusion([-1]);
-
-    // Confine physics (and therefore the player) to the map, not just the
-    // small camera viewport, so setCollideWorldBounds keeps them inside the room.
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-    // Spawn the player at the centre of the chosen start tile.
-    this.player = new Player(
-      this,
-      SPAWN_TILE_X * map.tileWidth + map.tileWidth / 2,
-      SPAWN_TILE_Y * map.tileHeight + map.tileHeight / 2
-    );
-
-    // Stop the player from walking through walls.
+    // --- player ---
+    this.player = new Player(this, TEST_CONFIG.spawn.x, TEST_CONFIG.spawn.y);
     this.physics.add.collider(this.player, wallsLayer);
 
-    // Camera: follow the player but never scroll past the edges of the map,
-    // and snap to whole pixels so the pixel art stays crisp (no shimmering).
+    // --- camera ---
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     this.cameras.main.startFollow(this.player, true); // true = round to pixels
+
+    // --- event bus ---
+    // A dedicated emitter for gameplay events (interact:done, deliver:done, ...)
+    // kept separate from Phaser's own scene events so they never collide.
+    this.bus = new Phaser.Events.EventEmitter();
+
+    // --- interaction + carry ---
+    this.interaction = new InteractionSystem(this, this.player, this.bus);
+
+    // Spawn props from the config and register them as interactables.
+    for (const e of TEST_CONFIG.entities) {
+      if (e.type !== 'prop') continue;
+      const prop = new Prop(this, e);
+      this.interaction.register(prop);
+    }
+
+    // --- objectives + HUD ---
+    this.tracker = new ObjectiveTracker(
+      this.bus,
+      TEST_CONFIG.objectives,
+      () => this.onAllComplete()
+    );
+    this.hud = new ObjectivesHud(this, this.bus, this.tracker.getObjectives());
+  }
+
+  // Placeholder for the real end-of-period cutscene (a later stage). For now we
+  // just flash a message when every objective is checked off.
+  onAllComplete() {
+    this.add
+      .text(this.scale.width / 2, this.scale.height / 2, 'All duties complete!', {
+        fontFamily: 'monospace',
+        fontSize: '16px',
+        color: '#ffffff',
+        backgroundColor: '#000000',
+        padding: { x: 6, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(3000);
   }
 
   update() {
-    // Drive the player's own per-frame logic (reading keys, animating).
     if (this.player) this.player.update();
+    if (this.interaction) this.interaction.update();
   }
 }
