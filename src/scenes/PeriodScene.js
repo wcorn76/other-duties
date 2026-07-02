@@ -12,7 +12,7 @@ import Prop from '../entities/Prop.js';
 import Npc from '../entities/Npc.js';
 import InteractionSystem from '../systems/interaction.js';
 import ObjectiveTracker from '../systems/objectives.js';
-import ObjectivesHud from '../ui/objectivesHud.js';
+import Hud from '../ui/hud.js';
 import DialogueSystem, { dialoguePortraitAssets } from '../systems/dialogue.js';
 import period1 from '../../data/periods/period_1.json';
 import { buildPeriod, installTaskWiring } from '../systems/tasks.js';
@@ -100,7 +100,7 @@ export default class PeriodScene extends Phaser.Scene {
       period.objectives,
       () => this.onAllComplete()
     );
-    this.hud = new ObjectivesHud(this, this.bus, this.tracker.getObjectives());
+    this.hud = new Hud(this, this.bus, this.tracker.getObjectives());
 
     // find_use "givers": the content layer owns this now (talking to the giver
     // hands over the item into the carry slot).
