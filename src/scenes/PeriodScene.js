@@ -13,6 +13,7 @@ import Npc from '../entities/Npc.js';
 import InteractionSystem from '../systems/interaction.js';
 import ObjectiveTracker from '../systems/objectives.js';
 import Hud from '../ui/hud.js';
+import Panel from '../ui/panel.js';
 import DialogueSystem, { dialoguePortraitAssets } from '../systems/dialogue.js';
 import period1 from '../../data/periods/period_1.json';
 import { buildPeriod, installTaskWiring } from '../systems/tasks.js';
@@ -62,6 +63,11 @@ export default class PeriodScene extends Phaser.Scene {
     const period = buildPeriod(period1);
     this.period = period;
 
+    // When true, play is frozen for a UI panel (to-do / complete). This feeds
+    // the SAME freeze predicate the dialogue system uses (see isPlayFrozen).
+    this.uiBlocked = false;
+    this.panel = null;
+
     // --- map ---
     const map = this.make.tilemap({ key: MAP_KEY });
     const tiles = map.addTilesetImage(TILESET_NAME_IN_MAP, TILESET_IMAGE_KEY);
@@ -106,31 +112,49 @@ export default class PeriodScene extends Phaser.Scene {
     // hands over the item into the carry slot).
     installTaskWiring(period.objectives, this.bus, this.interaction);
 
-    // NOTE: period.onComplete (e.g. { cutscene, next }) is kept on this.period
-    // for Step 5's end-of-period flow. We don't act on it yet — the tracker's
-    // onComplete callback below just shows the placeholder message for now.
+    // Period-start to-do panel. Freeze play (same mechanism dialogue uses) and
+    // list the tasks that were ACTUALLY picked (from the tracker, so it always
+    // matches the random subset). Dismiss with E/Enter to begin.
+    this.uiBlocked = true;
+    this.panel = Panel.todoList(this, {
+      // buildPeriod() doesn't carry `name` through, so fall back to the raw
+      // period file's name (then a generic default) rather than changing tasks.js.
+      title: (this.period && this.period.name) || period1.name || 'To-Do',
+      lines: this.tracker.getObjectives().map((o) => o.text),
+      onDismiss: () => {
+        this.panel = null;
+        this.uiBlocked = false; // unfreeze play
+      },
+    });
   }
 
-  // Placeholder for the real end-of-period cutscene (Step 5 will use
-  // this.period.onComplete). For now, flash a message when all tasks are done.
+  // True while play should be frozen: during a conversation OR while a UI panel
+  // is up. Player.update and interaction.update both consult this single
+  // predicate, so there is exactly ONE freeze path.
+  isPlayFrozen() {
+    return (this.dialogue && this.dialogue.isOpen()) || this.uiBlocked;
+  }
+
+  // Fires once all objectives are complete (via the tracker's onComplete).
   onAllComplete() {
-    this.add
-      .text(this.scale.width / 2, this.scale.height / 2, 'All duties complete!', {
-        fontFamily: 'monospace',
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: '#000000',
-        padding: { x: 6, y: 4 },
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(3000);
+    // Read the period's completion data defensively — those follow-on scenes
+    // (oc.next / oc.cutscene) don't exist yet, so we only DISPLAY them.
+    const oc = this.period && this.period.onComplete ? this.period.onComplete : {};
+    this.uiBlocked = true;
+    this.panel = Panel.message(this, {
+      main: 'Period complete!',
+      sub: oc.next ? 'Up next: ' + oc.next : '',
+      onDismiss: () => this.scene.start('TitleScene'),
+    });
   }
 
   update() {
-    // Order matters a little: let dialogue consume input first when open, then
-    // interaction (which early-returns while dialogue is open), then the player.
+    // Order matters: dialogue and the panel consume input FIRST (each via
+    // JustDown, which consumes the press for that frame), THEN interaction and
+    // the player — which both early-return while play is frozen. This is what
+    // stops a dismiss/confirm keypress from leaking into a gameplay interaction.
     if (this.dialogue) this.dialogue.update();
+    if (this.panel) this.panel.update();
     if (this.interaction) this.interaction.update();
     if (this.player) this.player.update();
   }

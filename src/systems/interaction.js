@@ -70,9 +70,10 @@ export default class InteractionSystem {
 
   // Called every frame by the scene.
   update() {
-    // While a conversation is open, the player can't interact or move — the
-    // dialogue system owns input. Hide the prompt and bail out.
-    if (this.scene.dialogue && this.scene.dialogue.isOpen()) {
+    // While play is frozen (a conversation or a UI panel is up), the player
+    // can't interact. Hide the prompt and bail out. Same predicate the player
+    // uses — one freeze path.
+    if (this.scene.isPlayFrozen && this.scene.isPlayFrozen()) {
       this.prompt.setVisible(false);
       return;
     }

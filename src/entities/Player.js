@@ -64,8 +64,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   // Called every frame by the scene. Reads input and moves/animates.
   update() {
-    // Freeze the player while a conversation is open — dialogue owns input then.
-    if (this.scene.dialogue && this.scene.dialogue.isOpen()) {
+    // Freeze the player while play is frozen (a conversation or a UI panel is
+    // up). Same predicate the interaction system uses — one freeze path.
+    if (this.scene.isPlayFrozen && this.scene.isPlayFrozen()) {
       this.setVelocity(0, 0);
       this.anims.stop();
       this.setFrame(IDLE_FRAME[this.facing]);
