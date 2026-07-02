@@ -12,6 +12,7 @@ import Prop from '../entities/Prop.js';
 import Npc from '../entities/Npc.js';
 import Student from '../entities/Student.js';
 import InteractionSystem from '../systems/interaction.js';
+import DetentionSlip from '../systems/detentionSlip.js';
 import ObjectiveTracker from '../systems/objectives.js';
 import Hud from '../ui/hud.js';
 import Panel from '../ui/panel.js';
@@ -129,6 +130,10 @@ export default class PeriodScene extends Phaser.Scene {
     );
     this.hud = new Hud(this, this.bus, this.tracker.getObjectives());
 
+    // --- detention slip (primary gear, SPACE) ---
+    this.slip = new DetentionSlip(this, this.player, this.bus);
+    this.hud.setActiveGear('Slip');
+
     // find_use "givers": the content layer owns this now (talking to the giver
     // hands over the item into the carry slot).
     installTaskWiring(period.objectives, this.bus, this.interaction);
@@ -177,6 +182,7 @@ export default class PeriodScene extends Phaser.Scene {
     if (this.dialogue) this.dialogue.update();
     if (this.panel) this.panel.update();
     if (this.interaction) this.interaction.update();
+    if (this.slip) this.slip.update();
     if (this.player) this.player.update();
     if (this.students) {
       for (const s of this.students) if (s.active) s.update();

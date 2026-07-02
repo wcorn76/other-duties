@@ -4,9 +4,10 @@
 // LIVE now:
 //   - OBJECTIVES: seeded from the tracker and updated on the 'objective:updated'
 //     event; ticks [ ] -> [x] (green) and shows (progress/count) for trash.
-// STATIC placeholders (a later stage wires these to real values):
-//   - HEARTS (composure) on the left.
-//   - SCORE on the right.
+//   - HEARTS (composure): setHearts(current, max) fills/empties them (Stage 5).
+//   - SCORE: setScore(n) updates the number live (Stage 5).
+//   - ACTIVE GEAR (centre): setActiveGear(label) shows the current primary gear
+//     (the detention slip); pulseGear() flashes it when used (Stage 5).
 //
 // Everything here is camera-pinned (setScrollFactor(0)) at a high depth so it
 // stays fixed on screen and draws above the play field. Internal res is 384x216.
@@ -15,8 +16,9 @@
 const STRIP = { x: 0, y: 0, w: 384, h: 14 };
 const DEPTH = 1000;
 
-const HEARTS = { x: 4, y: 3, size: 7, gap: 10, count: 3, color: 0xff4444 };
+const HEARTS = { x: 4, y: 3, size: 7, gap: 10, full: 0xff4444, empty: 0x442022 };
 const SCORE = { x: 380, y: 3 };
+const GEAR = { x: 192, y: 3 }; // centre of the strip: active-gear indicator
 
 const OBJECTIVES = { x: 4, y: 18, lineHeight: 9 };
 const TEXT_STYLE = { fontFamily: 'monospace', fontSize: '8px', color: '#ffffff' };
@@ -26,6 +28,7 @@ export default class Hud {
   constructor(scene, bus, objectives) {
     this.scene = scene;
     this.objLines = []; // objective Text objects, one per objective
+    this.hearts = [];   // heart squares (filled/emptied live)
 
     this.buildStrip();
     this.render(objectives);
@@ -34,7 +37,7 @@ export default class Hud {
     bus.on('objective:updated', (list) => this.render(list));
   }
 
-  // The fixed top strip: background band + static hearts + static score.
+  // The fixed top strip: background band + hearts + active-gear slot + score.
   buildStrip() {
     const scene = this.scene;
 
@@ -45,30 +48,59 @@ export default class Hud {
       .setScrollFactor(0)
       .setDepth(DEPTH);
 
-    // HEARTS (left) — STATIC placeholder. Stage 5 wires live composure here.
-    for (let i = 0; i < HEARTS.count; i++) {
-      scene.add
-        .rectangle(
-          HEARTS.x + i * HEARTS.gap,
-          HEARTS.y,
-          HEARTS.size,
-          HEARTS.size,
-          HEARTS.color
-        )
-        .setOrigin(0, 0)
-        .setScrollFactor(0)
-        .setDepth(DEPTH + 1);
-    }
+    // HEARTS (left) — LIVE. Created empty here; setHearts() fills them.
+    // (Count is set the first time setHearts(current, max) is called.)
 
-    // CENTER of the strip is reserved for the active-gear indicator
-    // (TECH_SPEC §2) — a later stage will draw it here.
+    // ACTIVE GEAR (centre) — LIVE. The current primary gear (detention slip).
+    this.gearText = scene.add
+      .text(GEAR.x, GEAR.y, '', TEXT_STYLE)
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(DEPTH + 1);
 
-    // SCORE (right) — STATIC placeholder. Stage 5 wires live score here.
-    scene.add
+    // SCORE (right) — LIVE. setScore() updates the number.
+    this.scoreText = scene.add
       .text(SCORE.x, SCORE.y, 'Score 0', TEXT_STYLE)
       .setOrigin(1, 0) // right-aligned
       .setScrollFactor(0)
       .setDepth(DEPTH + 1);
+  }
+
+  // LIVE hearts: draw `max` squares, filled up to `current`. Rebuilds on demand.
+  setHearts(current, max) {
+    this.hearts.forEach((h) => h.destroy());
+    this.hearts = [];
+    for (let i = 0; i < max; i++) {
+      this.hearts.push(
+        this.scene.add
+          .rectangle(
+            HEARTS.x + i * HEARTS.gap,
+            HEARTS.y,
+            HEARTS.size,
+            HEARTS.size,
+            i < current ? HEARTS.full : HEARTS.empty
+          )
+          .setOrigin(0, 0)
+          .setScrollFactor(0)
+          .setDepth(DEPTH + 1)
+      );
+    }
+  }
+
+  // LIVE score.
+  setScore(value) {
+    this.scoreText.setText('Score ' + value);
+  }
+
+  // Show which primary gear is active (centre of the strip).
+  setActiveGear(label) {
+    this.gearText.setText('[Space] ' + label);
+  }
+
+  // Brief flash of the gear label when the gear is used.
+  pulseGear() {
+    this.gearText.setColor('#ffff88');
+    this.scene.time.delayedCall(120, () => this.gearText.setColor('#ffffff'));
   }
 
   // LIVE objectives checklist, drawn just under the strip. (Behaviour moved
