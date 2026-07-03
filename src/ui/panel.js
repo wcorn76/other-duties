@@ -42,8 +42,10 @@ export default class Panel {
     return p;
   }
 
-  // Big centered message with an optional dim sub-line and a dim footer.
-  static message(scene, { main, sub, onDismiss }) {
+  // Big centered message with an optional dim sub-line and a dim footer. The
+  // footer defaults to "Press E to return to title" but can be overridden (e.g.
+  // "Press E to try again" for a level restart).
+  static message(scene, { main, sub, onDismiss, footer = 'Press E to return to title' }) {
     const p = new Panel(scene, onDismiss);
     const boxW = 300;
     const boxH = 74;
@@ -52,7 +54,7 @@ export default class Panel {
     p._box(boxW, boxH);
     p._text(CX, top + 18, main, BIG, 0.5, 0.5);
     if (sub) p._text(CX, top + 40, sub, { color: DIM }, 0.5, 0.5);
-    p._text(CX, top + boxH - 14, 'Press E to return to title', { color: DIM }, 0.5, 0.5);
+    p._text(CX, top + boxH - 14, footer, { color: DIM }, 0.5, 0.5);
     return p;
   }
 

@@ -438,7 +438,8 @@ export default class PeriodScene extends Phaser.Scene {
     this.uiBlocked = true;
     this.panel = Panel.message(this, {
       main: 'The lunch lady storms out!',
-      sub: '"WHO is supervising in here?!"  Press E to try again.',
+      sub: '"WHO is supervising in here?!"',
+      footer: 'Press E to try again',
       onDismiss: () => this.scene.restart({ period: this.periodData }),
     });
   }
