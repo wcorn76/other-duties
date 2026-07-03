@@ -8,6 +8,7 @@ import Phaser from 'phaser';
 import period1 from '../../data/periods/period_1.json';
 import hallDuty1 from '../../data/periods/hall_duty_1.json';
 import periodTestAll5 from '../../data/periods/period_test_all5.json';
+import lunch1 from '../../data/periods/lunch_1.json';
 
 export default class TitleScene extends Phaser.Scene {
   constructor() {
@@ -29,6 +30,7 @@ export default class TitleScene extends Phaser.Scene {
     this.options = [
       { label: 'First Period', period: period1 },
       { label: 'Hall Duty', period: hallDuty1 },
+      { label: 'Lunch Duty', period: lunch1 },
       { label: 'Test: All 5', period: periodTestAll5 },
     ];
     this.selected = 0;
@@ -36,7 +38,7 @@ export default class TitleScene extends Phaser.Scene {
     // One text row per option; clickable and hover-selectable too.
     this.optionTexts = this.options.map((o, i) =>
       this.add
-        .text(cx, cy - 8 + i * 14, o.label, {
+        .text(cx, cy - 14 + i * 13, o.label, {
           fontFamily: 'monospace', fontSize: '10px', color: '#ffffff',
         })
         .setOrigin(0.5)
@@ -55,7 +57,7 @@ export default class TitleScene extends Phaser.Scene {
     this.upKeys = [kb.addKey(KC.UP), kb.addKey(KC.W)];
     this.downKeys = [kb.addKey(KC.DOWN), kb.addKey(KC.S)];
     this.confirmKeys = [kb.addKey(KC.E), kb.addKey(KC.ENTER)];
-    this.numberKeys = [kb.addKey(KC.ONE), kb.addKey(KC.TWO), kb.addKey(KC.THREE)];
+    this.numberKeys = [kb.addKey(KC.ONE), kb.addKey(KC.TWO), kb.addKey(KC.THREE), kb.addKey(KC.FOUR)];
 
     this.refresh();
   }

@@ -26,6 +26,12 @@ const TIMER = { x: 282, y: 3 };
 const OBJECTIVES = { x: 4, y: 18, lineHeight: 9 };
 const TEXT_STYLE = { fontFamily: 'monospace', fontSize: '8px', color: '#ffffff' };
 
+// Lunch Duty three-bar meter display (top-left, under the strip). Boss periods
+// have no objective checklist, so this reuses that space and does not overlap
+// the hearts/gear/score/timer on the strip above. Bar ends at ~144px, clear of
+// the centre gear (~155+).
+const METERS = { x: 4, y: 18, rowH: 11, labelW: 54, barW: 84, barH: 6 };
+
 export default class Hud {
   // Constructed exactly like the old ObjectivesHud: (scene, bus, objectives).
   constructor(scene, bus, objectives) {
@@ -117,6 +123,46 @@ export default class Hud {
   // LIVE score.
   setScore(value) {
     this.scoreText.setText('Score ' + value);
+  }
+
+  // --- Lunch Duty meter bars ---------------------------------------------
+
+  // Create the three labeled bars once. Call with the meter snapshot.
+  initMeters(meters) {
+    this.meterBars = meters.map((m, i) => {
+      const y = METERS.y + i * METERS.rowH;
+      const label = this.scene.add
+        .text(METERS.x, y, m.label, TEXT_STYLE)
+        .setScrollFactor(0)
+        .setDepth(DEPTH + 1);
+      const barX = METERS.x + METERS.labelW;
+      const bg = this.scene.add
+        .rectangle(barX, y, METERS.barW, METERS.barH, 0x33333f)
+        .setOrigin(0, 0)
+        .setScrollFactor(0)
+        .setDepth(DEPTH + 1);
+      const fill = this.scene.add
+        .rectangle(barX, y, 0, METERS.barH, 0x6ad06a)
+        .setOrigin(0, 0)
+        .setScrollFactor(0)
+        .setDepth(DEPTH + 2);
+      return { id: m.id, label, bg, fill };
+    });
+    this.updateMeters(meters);
+  }
+
+  // Resize/recolour the fills each time the meter values change. Greens low,
+  // oranges mid, reds near max.
+  updateMeters(meters) {
+    if (!this.meterBars) return;
+    for (const m of meters) {
+      const bar = this.meterBars.find((b) => b.id === m.id);
+      if (!bar) continue;
+      const ratio = Math.max(0, Math.min(1, m.current / m.max));
+      bar.fill.width = METERS.barW * ratio;
+      const color = ratio > 0.75 ? 0xd05050 : ratio > 0.5 ? 0xd0a040 : 0x6ad06a;
+      bar.fill.setFillStyle(color);
+    }
   }
 
   // Show which primary gear is active (centre of the strip).

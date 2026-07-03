@@ -23,6 +23,7 @@ import InvestigationReader from '../systems/investigationReader.js';
 import period1 from '../../data/periods/period_1.json';
 import { buildPeriod, installTaskWiring } from '../systems/tasks.js';
 import { countUncitedGuilty, TARDY_PENALTY } from '../systems/hallDuty.js';
+import Meters from '../systems/meters.js';
 
 // Which map + tileset to load. Hardcoded for now (one test room only).
 const MAP_KEY = 'test-room';
@@ -37,6 +38,9 @@ const KNOCKBACK_MS = 200;       // how long the shove lasts
 // Countdown: when the remaining time is at/under this many seconds, the HUD
 // timer reddens and flashes each second.
 const LOW_TIMER_SECONDS = 10;
+
+// Lunch Duty: how often a fresh piece of trash appears to be cleaned up (ms).
+const TRASH_SPAWN_EVERY_MS = 4000;
 
 export default class PeriodScene extends Phaser.Scene {
   constructor() {
@@ -199,6 +203,36 @@ export default class PeriodScene extends Phaser.Scene {
       }
     }
 
+    // --- Lunch Duty boss meters (Stage 8) ---
+    // A `type:'boss'` period with `meters` runs the chaos-meter loop on top of
+    // the shared timed harness. The three meters rise on their own and are
+    // pushed down by matching actions (trash pickup / cite / bathroom grant).
+    this.isBoss = period.type === 'boss' && Array.isArray(period.meters);
+    this.failed = false;
+    this.survived = false;
+    if (this.isBoss) {
+      this.meters = new Meters({
+        meters: period.meters,
+        onBreak: (id) => this.onMeterBroke(id),
+      });
+      this.hud.initMeters(this.meters.getMeters());
+      this._trashAccum = 0;
+      this._trashCount = 0;
+
+      // TRASH meter: every trash pickup (collect:done, Stage 3 path) drops it.
+      this.bus.on('collect:done', () => {
+        this.meters.lower('trash');
+        this.hud.updateMeters(this.meters.getMeters());
+      });
+      // MISCHIEF meter: citing a mischief (guilty) student drops it (Phase B).
+      this.bus.on('cite:done', ({ guilty }) => {
+        if (guilty) {
+          this.meters.lower('mischief');
+          this.hud.updateMeters(this.meters.getMeters());
+        }
+      });
+    }
+
     // --- countdown / tardy bell (timed periods only, e.g. Hall Duty) ---
     this.hasTimer = period.timeLimit != null;
     this.timerRunning = false; // starts when the player dismisses the briefing
@@ -217,11 +251,24 @@ export default class PeriodScene extends Phaser.Scene {
     // list the tasks that were ACTUALLY picked (from the tracker, so it always
     // matches the random subset). Dismiss with E/Enter to begin.
     this.uiBlocked = true;
+    // Boss periods brief the controls (they have no objective checklist);
+    // ordinary periods list the tasks that were actually picked.
+    const briefing = this.isBoss
+      ? {
+          title: period.name || 'Lunch Duty',
+          lines: [
+            'Survive to 0:00 — keep every meter down!',
+            'Mischief: cite the trouble (Space)',
+            'Trash: pick up the litter (E)',
+            'Bathroom: grant the hall pass (E)',
+          ],
+        }
+      : {
+          title: (this.period && this.period.name) || 'To-Do',
+          lines: this.tracker.getObjectives().map((o) => o.text),
+        };
     this.panel = Panel.todoList(this, {
-      // buildPeriod() now carries `name` through, so read it from the built
-      // period object (falling back to a generic default just in case).
-      title: (this.period && this.period.name) || 'To-Do',
-      lines: this.tracker.getObjectives().map((o) => o.text),
+      ...briefing,
       onDismiss: () => {
         this.panel = null;
         this.uiBlocked = false; // unfreeze play
@@ -354,7 +401,62 @@ export default class PeriodScene extends Phaser.Scene {
       this.hud.setTimer(sec, warning);
       if (warning && sec > 0) this.hud.pulseTimer();
     }
-    if (this.timeRemainingMs <= 0) this.ringBell();
+    if (this.timeRemainingMs <= 0) {
+      if (this.isBoss) this.onLunchSurvived(); // survived the 3 minutes = win
+      else this.ringBell();
+    }
+  }
+
+  // Lunch Duty WIN: reached 0:00 with no meter maxed. (No tardy tally here —
+  // survival IS the success condition.)
+  onLunchSurvived() {
+    if (this.survived || this.failed) return;
+    this.survived = true;
+    this.timerRunning = false;
+    this.hud.setTimer(0, false);
+    const oc = (this.period && this.period.onComplete) || {};
+    this.uiBlocked = true;
+    this.panel = Panel.message(this, {
+      main: oc.title || 'Lunch survived!',
+      sub: `Final score ${this.score.getValue()}`,
+      onDismiss: () => this.scene.start('TitleScene'),
+    });
+  }
+
+  // Lunch Duty FAIL: a meter maxed out — the lunch lady storms out and yells,
+  // then the level restarts. (Escalation makes late-clock maxes likely.)
+  onMeterBroke(id) {
+    if (this.failed || this.survived) return;
+    this.failed = true;
+    this.timerRunning = false;
+    this.bus.emit('meter:broke', { id });
+    this.showLunchLady();
+    this.uiBlocked = true;
+    this.panel = Panel.message(this, {
+      main: 'The lunch lady storms out!',
+      sub: '"WHO is supervising in here?!"  Press E to try again.',
+      onDismiss: () => this.scene.restart({ period: this.periodData }),
+    });
+  }
+
+  // Spawn fresh trash to be cleaned up (drives the Trash meter down when picked
+  // up). Called each frame from the boss loop with the frame delta.
+  updateTrashSpawner(delta) {
+    this._trashAccum += delta;
+    if (this._trashAccum < TRASH_SPAWN_EVERY_MS) return;
+    this._trashAccum = 0;
+    // Random spot in the open cafeteria floor (clear of the interior walls).
+    const x = Phaser.Math.Between(30, 300);
+    const y = Phaser.Math.Between(40, 150);
+    const prop = new Prop(this, {
+      id: 'lunch_trash_' + this._trashCount++,
+      sprite: 'trash',
+      x,
+      y,
+      verb: 'trash',
+      item: 'trash',
+    });
+    this.interaction.register(prop);
   }
 
   // The bell: freeze play, tally every still-uncited guilty kid as a tardy,
@@ -401,6 +503,24 @@ export default class PeriodScene extends Phaser.Scene {
       });
     }
 
+    // Lunch Duty meters: rise (faster as the clock runs down) while playing.
+    if (this.isBoss && this.meters && this.timerRunning && !this.isPlayFrozen()) {
+      const total = this.period.timeLimit * 1000;
+      const timeFraction = 1 - this.timeRemainingMs / total;
+      this.meters.tick(delta / 1000, timeFraction);
+      this.hud.updateMeters(this.meters.getMeters());
+      this.updateTrashSpawner(delta);
+      if (this.bathroom) this.bathroom.update(this.time.now);
+    }
+
     this.updateTimer(delta);
+  }
+
+  // Placeholder lunch-lady pop for the fail screen (art added in Phase D; this
+  // no-ops until the texture exists).
+  showLunchLady() {
+    if (!this.textures.exists('lunch_lady')) return;
+    const img = this.add.image(192, 92, 'lunch_lady').setScrollFactor(0).setDepth(1450).setScale(0.6);
+    this.tweens.add({ targets: img, scale: 1, duration: 200 });
   }
 }

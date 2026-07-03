@@ -61,12 +61,15 @@ export function buildPeriod(period) {
   return {
     id: period.id,
     name: period.name,
+    type: period.type,                  // e.g. 'boss' (Lunch Duty)
     spawn: period.spawn,
     objectives,
     entities,
     students: period.students ?? [],   // data-driven students (Stage 6)
     timeLimit: period.timeLimit,        // seconds; undefined = no countdown
     discretion: period.discretion === true, // gates the wrong-cite penalty
+    meters: period.meters ?? null,      // Lunch Duty chaos meters (Stage 8)
+    onFail: period.onFail,              // boss fail hook
     onComplete: period.onComplete,
   };
 }

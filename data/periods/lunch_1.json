@@ -1,0 +1,24 @@
+{
+  "id": "lunch_1",
+  "name": "Lunch Duty",
+  "type": "boss",
+  "spawn": { "x": 48, "y": 110 },
+  "timeLimit": 180,
+  "meters": [
+    { "id": "mischief", "label": "Mischief", "max": 100, "baseEventRate": 0.5, "fallPerAction": 25 },
+    { "id": "trash", "label": "Trash", "max": 100, "baseEventRate": 0.5, "fallPerAction": 25 },
+    { "id": "bathroom", "label": "Bathroom", "max": 100, "baseEventRate": 0.5, "fallPerAction": 25 }
+  ],
+  "students": [
+    { "id": "mischief_1", "x": 120, "y": 70, "upToNoGood": true, "behaviour": "loiter" },
+    { "id": "mischief_2", "x": 200, "y": 90, "upToNoGood": true, "behaviour": "loiter" },
+    { "id": "mischief_3", "x": 150, "y": 140, "upToNoGood": true, "behaviour": "loiter" },
+    { "id": "mischief_4", "x": 260, "y": 120, "upToNoGood": true, "behaviour": "loiter" },
+    { "id": "diner_1", "x": 90, "y": 120, "upToNoGood": false, "behaviour": "loiter" },
+    { "id": "diner_2", "x": 170, "y": 70, "upToNoGood": false, "behaviour": "loiter" },
+    { "id": "diner_3", "x": 240, "y": 60, "upToNoGood": false, "behaviour": "loiter" },
+    { "id": "diner_4", "x": 110, "y": 150, "upToNoGood": false, "behaviour": "loiter" }
+  ],
+  "onFail": { "cutscene": "lunch_lady_yell", "action": "restart" },
+  "onComplete": { "title": "Lunch survived!" }
+}
