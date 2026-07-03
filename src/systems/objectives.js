@@ -4,8 +4,8 @@
 // "done" as matching gameplay events arrive. When ALL are done, it fires
 // onComplete (and an 'objectives:allcomplete' event).
 //
-// Objective 'type' vocabulary: interact / deliver / talk / trash / find_use,
-// with `reach` and `meter` still left as clearly-marked SEAMS below.
+// Objective 'type' vocabulary: interact / deliver / talk / trash / find_use /
+// cite / reach / cover / investigation, with `meter` still left as a SEAM below.
 // IMPORTANT: do NOT hardcode any specific objective here. This file only knows
 // the generic shapes; the actual objectives come in as data.
 //
@@ -20,6 +20,26 @@
 //       completed by the same deliver:done event as `deliver`.
 //   { id, type:'cite',     count:<n>, text }
 //       count-based (Hall Duty); advances only on GUILTY cites, completes at N.
+//   { id, type:'reach',    zone:<zoneId>, text }
+//       completes the instant the player is inside the zone rect.
+//   { id, type:'cover',    zone:<zoneId>, seconds:<n>, text }
+//       reach-AND-DWELL: a timer accrues only while the player is inside the
+//       zone; leaving PAUSES it (does not reset); completes at `seconds`.
+//   { id, type:'investigation', incident:<incidentId>, text }
+//       completes on an investigate:done event with correct:true for that case.
+//
+// The zone geometry check is a PURE, exported helper so it's Node-testable; the
+// scene feeds the player position + zone rects into tickZoneObjectives().
+
+// Is point (px,py) inside rect { x, y, w, h }? (Pure — no Phaser.)
+export function pointInRect(px, py, rect) {
+  return (
+    px >= rect.x &&
+    px <= rect.x + rect.w &&
+    py >= rect.y &&
+    py <= rect.y + rect.h
+  );
+}
 
 export default class ObjectiveTracker {
   constructor(bus, objectives, onComplete) {
@@ -67,15 +87,58 @@ export default class ObjectiveTracker {
       if (guilty === true) this.progressCite();
     });
 
-    // ----------------------------------------------------------------------
-    // SEAMS still open for later stages (intentionally NOT implemented):
-    //   reach:  this.bus.on('reach:done', ({ zone }) =>
-    //             this.completeWhere(o => o.type === 'reach' && o.target === zone));
+    // investigate:done { incident, correct } -> completes an 'investigation'
+    // objective for that incident, but only on a CORRECT accusation.
+    this.bus.on('investigate:done', ({ incident, correct }) => {
+      if (correct === true) {
+        this.completeWhere((o) => o.type === 'investigation' && o.incident === incident);
+      }
+    });
+
+    // NOTE: 'reach' and 'cover' are zone-based and driven by the scene each
+    // frame via tickZoneObjectives() (they need the live player position), not
+    // by a one-shot event. The only SEAM still open is:
     //   meter:  a metering system will call completeWhere(...) when a tracked
     //           value crosses the objective's threshold.
-    // (A generic 'collect item X' verb can reuse completeWhere like talk/deliver;
-    //  'trash' above is the count-based variant used this stage.)
-    // ----------------------------------------------------------------------
+  }
+
+  // Called every frame by the scene for zone-based objectives. `isInside(o)`
+  // returns whether the player is currently inside objective `o`'s zone.
+  //   'reach' completes the instant the player is inside.
+  //   'cover' accrues a dwell timer ONLY while inside; leaving pauses (does not
+  //           reset) it; it completes once elapsed reaches `seconds`.
+  tickZoneObjectives(deltaMs, isInside) {
+    let changed = false;
+    for (const o of this.objectives) {
+      if (o.done) continue;
+
+      if (o.type === 'reach') {
+        if (isInside(o)) {
+          o.done = true;
+          changed = true;
+        }
+        continue;
+      }
+
+      if (o.type === 'cover') {
+        if (!isInside(o)) continue; // outside the room -> pause (keep progress)
+        o.elapsedMs = (o.elapsedMs || 0) + deltaMs;
+        const nowDone = o.elapsedMs >= o.seconds * 1000;
+        const sec = Math.min(o.seconds, Math.floor(o.elapsedMs / 1000));
+        if (nowDone) {
+          o.done = true;
+          o.progress = o.seconds;
+          changed = true;
+        } else if (sec !== (o.progress || 0)) {
+          o.progress = sec; // whole-second tick for the HUD
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      this.bus.emit('objective:updated', this.getObjectives());
+      this.checkAllComplete();
+    }
   }
 
   // Count-based progress for 'trash' objectives: each collect:done ticks every
@@ -143,9 +206,11 @@ export default class ObjectiveTracker {
   getObjectives() {
     return this.objectives.map((o) => ({
       id: o.id,
+      type: o.type,
       text: o.text,
       done: o.done,
       count: o.count,
+      seconds: o.seconds, // for 'cover' progress display (Ns / Ns)
       progress: o.progress || 0,
     }));
   }
