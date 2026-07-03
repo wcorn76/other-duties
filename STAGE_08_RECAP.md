@@ -62,6 +62,11 @@ harness, slip/`cite:done`, trash/`collect:done`, composure, score, and HUD;
 - **Trash meter both drifts up (generic) AND has physical trash to clear** — the drift represents mess accumulating; the spawned trash props (every `TRASH_SPAWN_EVERY_MS=4000`) are what you pick up to lower it.
 - Added `MAX_WAITING=3` (bathroom) and `TRASH_SPAWN_EVERY_MS` (scene) constants not in the brief's list, for fairness/pacing — named + commented.
 
+## Hotfix (post-play-check, same day)
+- **Mischief was unwinnable — no renewable target.** Trash had `updateTrashSpawner` and Bathroom had the request timer, but Mischief only had the 4 seeded students, and `Student.cite()` destroys them — so after ~4 cites there was nothing left to cite while the meter kept rising (and the room felt empty). Added `updateMischiefSpawner(delta)` symmetric with the trash spawner: it drops a fresh `upToNoGood:true` kid every `MISCHIEF_SPAWN_EVERY_MS=5000`ms from `MISCHIEF_SPAWN_POINTS`, capped at `MAX_MISCHIEF_ON_SCREEN=5` live guilty kids, pushed into `scene.students` with a wall collider. (Also stored `this.wallsLayer` in `create()` so the runtime spawner can add the collider the same way the create-time loop does.) **New tunables for the later balance pass:** `MISCHIEF_SPAWN_EVERY_MS`, `MAX_MISCHIEF_ON_SCREEN`.
+- **Trash rendered as a missing-texture box (dark box, green outline).** Lunch spawns trash at runtime, but the boss `preload()` never loaded `trash.png` (other levels load it implicitly via `entities`/`taskPool`). Added `this.load.image('trash', ...)` inside the `type==='boss'` preload block next to `lunch_lady`.
+- Both verified live (fresh trash shows the real sprite; new red-"!" kids keep appearing and citing them holds the Mischief bar). Nothing else changed.
+
 ## Friction points
 - Layering the lunch-lady pop: first draw landed behind the panel (depth 1450 < panel 1500); moved her above the panel (depth 1600, y=44) so she looms over the yell.
 - Verifying meter rise in a headless screenshot is unreliable (virtual-time timing), so the pure `test-meters.mjs` is the authoritative proof; screenshots confirmed the wiring/visuals (bars, tells, tables, fail/win panels).
