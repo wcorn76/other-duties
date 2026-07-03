@@ -24,6 +24,7 @@ import period1 from '../../data/periods/period_1.json';
 import { buildPeriod, installTaskWiring } from '../systems/tasks.js';
 import { countUncitedGuilty, TARDY_PENALTY } from '../systems/hallDuty.js';
 import Meters from '../systems/meters.js';
+import Bathroom from '../systems/bathroom.js';
 
 // Which map + tileset to load. Hardcoded for now (one test room only).
 const MAP_KEY = 'test-room';
@@ -68,6 +69,7 @@ export default class PeriodScene extends Phaser.Scene {
     this.load.image('npc', 'assets/sprites/npc.png');
     this.load.image('student', 'assets/sprites/student.png');
     this.load.image('zone_marker', 'assets/sprites/zone_marker.png');
+    this.load.image('bathroom_tell', 'assets/sprites/bathroom_tell.png');
     for (const a of dialoguePortraitAssets()) this.load.image(a.key, a.path);
 
     // IMPORTANT: buildPeriod() may pick a RANDOM subset at create() time, so we
@@ -224,13 +226,15 @@ export default class PeriodScene extends Phaser.Scene {
         this.meters.lower('trash');
         this.hud.updateMeters(this.meters.getMeters());
       });
-      // MISCHIEF meter: citing a mischief (guilty) student drops it (Phase B).
+      // MISCHIEF meter: citing a mischief (guilty) student drops it.
       this.bus.on('cite:done', ({ guilty }) => {
         if (guilty) {
           this.meters.lower('mischief');
           this.hud.updateMeters(this.meters.getMeters());
         }
       });
+      // BATHROOM meter: a diner raises a hand; granting (E) drops it.
+      this.bathroom = new Bathroom(this, this.bus, this.interaction, this.meters, this.hud);
     }
 
     // --- countdown / tardy bell (timed periods only, e.g. Hall Duty) ---

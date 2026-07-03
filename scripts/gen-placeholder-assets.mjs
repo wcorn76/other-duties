@@ -320,9 +320,26 @@ function buildZoneMarker() {
   save(png, 'public/assets/sprites/zone_marker.png');
 }
 
+// A "raised hand" tell that floats over a student asking for the bathroom
+// (Lunch Duty). Cyan so it reads distinct from the red mischief "!".
+function buildBathroomTell() {
+  const png = makeImage(16, 16);
+  const HAND = [150, 220, 255];
+  const OUT = [60, 120, 160];
+  fillRect(png, 4, 7, 8, 6, HAND);   // palm
+  fillRect(png, 4, 2, 1, 6, HAND);   // fingers
+  fillRect(png, 6, 2, 1, 6, HAND);
+  fillRect(png, 8, 2, 1, 6, HAND);
+  fillRect(png, 10, 2, 1, 6, HAND);
+  fillRect(png, 3, 8, 1, 3, HAND);   // thumb
+  strokeRect(png, 4, 7, 8, 6, OUT);
+  save(png, 'public/assets/sprites/bathroom_tell.png');
+}
+
 buildTrash();
 buildStackOfPaper();
 buildCopier();
 buildStudent();
 buildZoneMarker();
+buildBathroomTell();
 console.log('done');

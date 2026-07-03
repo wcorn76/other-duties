@@ -157,6 +157,11 @@ export default class InteractionSystem {
         if (this.scene.reader) this.scene.reader.read(prop.incident);
         break;
 
+      case 'grant':
+        // A student is asking for the bathroom: grant the nearest one's pass.
+        if (this.scene.bathroom) this.scene.bathroom.grant(prop);
+        break;
+
       case 'trash':
         // Litter: just remove it and count it — it is NOT carried (no slot used).
         this.collectTrash(prop);
