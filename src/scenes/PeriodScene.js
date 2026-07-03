@@ -143,8 +143,19 @@ export default class PeriodScene extends Phaser.Scene {
     // --- score (live in the HUD) ---
     this.score = new Score({ onChange: (v) => this.hud.setScore(v) });
     this.hud.setScore(this.score.getValue());
-    // Citing a student scores points.
-    this.bus.on('cite:done', () => this.score.addCite());
+    // Points for a VALID cite: any cite in a non-discretion period, or a GUILTY
+    // cite in a discretion period. Wrong (innocent) cites score nothing.
+    this.bus.on('cite:done', ({ guilty }) => {
+      if (!period.discretion || guilty) this.score.addCite();
+    });
+    // Wrong cite in a discretion period: dock a heart (respects i-frames), with
+    // a flash but NO knockback — it's self-inflicted. The student stays.
+    this.bus.on('cite:done', ({ guilty }) => {
+      if (period.discretion && guilty === false) {
+        const res = this.composure.damage(DAMAGE_PER_HIT, this.time.now);
+        if (!res.blocked) this.flashPlayer();
+      }
+    });
     // Completing tasks scores a bonus: award for each newly-completed objective.
     this.doneCount = 0;
     this.bus.on('objective:updated', (list) => {

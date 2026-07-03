@@ -8,7 +8,15 @@
 //
 // SPACE is the slip's key (it was reserved for exactly this). No other keys are
 // touched. The slip does nothing while play is frozen (panels / dialogue).
+//
+// In "discretion" periods (Hall Duty) the slip routes the cite by whether the
+// student was up to no good (see hallDuty.citeOutcome): a GUILTY cite removes
+// them and scores; an INNOCENT cite is a mistake — no points, the kid STAYS, and
+// the scene docks a heart. In non-discretion periods (First Period) every cite
+// just scores, exactly as in Stage 5. The scene decides the score/heart effects
+// by listening to `cite:done { id, guilty }`.
 import Phaser from 'phaser';
+import { citeOutcome } from './hallDuty.js';
 
 // --- Tunables (named constants near the top) ------------------------------
 const SLIP_COOLDOWN_MS = 350; // minimum time between swipes
@@ -79,7 +87,19 @@ export default class DetentionSlip {
 
   cite(student) {
     const { x, y } = student;
-    this.bus.emit('cite:done', { id: student.id });
+    const discretion = this.scene.period && this.scene.period.discretion;
+    const outcome = citeOutcome(student.upToNoGood, discretion);
+
+    if (outcome === 'innocent') {
+      // Wrong cite: the kid was innocent. No points, they STAY; the scene docks
+      // a heart (it listens for guilty:false). Just a sheepish "?!" beat here.
+      this.bus.emit('cite:done', { id: student.id, guilty: false });
+      this.wrongCiteBeat(x, y);
+      return;
+    }
+
+    // Valid cite (a guilty kid, or any kid in a non-discretion period).
+    this.bus.emit('cite:done', { id: student.id, guilty: student.upToNoGood === true });
     this.detentionPop(x, y);
     this.poof(x, y);
     student.cite(); // removes it from the world
@@ -119,6 +139,25 @@ export default class DetentionSlip {
       y: y - 30,
       alpha: 0,
       duration: 650,
+      onComplete: () => text.destroy(),
+    });
+  }
+
+  // Brief "?!" over an innocent student who was cited by mistake.
+  wrongCiteBeat(x, y) {
+    const text = this.scene.add
+      .text(x, y - 14, '?!', {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color: '#8fd0ff',
+      })
+      .setOrigin(0.5)
+      .setDepth(FX_DEPTH + 1);
+    this.scene.tweens.add({
+      targets: text,
+      y: y - 26,
+      alpha: 0,
+      duration: 600,
       onComplete: () => text.destroy(),
     });
   }
