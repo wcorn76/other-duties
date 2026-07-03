@@ -21,5 +21,11 @@
     { "type": "prop", "id": "trash_l1", "sprite": "trash", "x": 255, "y": 62, "verb": "trash", "item": "litter_lounge" },
     { "type": "prop", "id": "trash_l2", "sprite": "trash", "x": 285, "y": 92, "verb": "trash", "item": "litter_lounge" }
   ],
+  "students": [
+    { "id": "student_a", "x": 140, "y": 100, "upToNoGood": false, "behaviour": "wander" },
+    { "id": "student_b", "x": 180, "y": 132, "upToNoGood": false, "behaviour": "wander" },
+    { "id": "student_c", "x": 108, "y": 152, "upToNoGood": false, "behaviour": "wander" },
+    { "id": "student_rowdy", "x": 224, "y": 108, "upToNoGood": false, "behaviour": "wander", "canDamage": true, "tint": 16744576 }
+  ],
   "onComplete": { "cutscene": "office_period1_end", "next": "hall_duty_1" }
 }

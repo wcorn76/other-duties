@@ -28,37 +28,45 @@ export function pickTasks(pool, count = PICK_COUNT) {
 }
 
 // Turn a period's data into the concrete run for this playthrough.
-// period = { id?, name?, spawn:{x,y}, taskPool:[...taskDefs], pickCount?, entities:[...], onComplete }
-// Returns { id, name, spawn, objectives, entities, onComplete } ready for the
-// scene — metadata (id/name) is carried through so the UI reads it from the
-// built object instead of the raw JSON.
+// Two shapes are supported:
+//   - taskPool + pickCount  -> pick a random subset (First Period): objectives
+//     are the picked tasks, and entities are trimmed to just what they `need`.
+//   - a direct `objectives` array (no taskPool) -> use it as-is, and keep ALL
+//     entities (used by Hall Duty, whose objective is fixed).
+// Either way metadata (id/name/onComplete) and Hall-Duty fields (students,
+// timeLimit, discretion) are carried through for the scene/UI.
 export function buildPeriod(period) {
-  // a) how many tasks to draw
-  const count = period.pickCount ?? PICK_COUNT;
+  let objectives;
+  let entities;
 
-  // b) draw the tasks
-  const picked = pickTasks(period.taskPool, count);
+  if (period.taskPool) {
+    // Pick-N path (First Period).
+    const count = period.pickCount ?? PICK_COUNT;
+    const picked = pickTasks(period.taskPool, count);
+    objectives = picked;
 
-  // c) the picked task defs already match the Stage 3 objective shapes the
-  //    tracker understands. A task def may also carry a planning-only "needs"
-  //    array of entity ids it uses; harmless to leave on the objective.
-  const objectives = picked;
-
-  // d) gather the union of entity ids the picked tasks need, then keep only
-  //    those entities from the period's full entity list.
-  const neededIds = new Set();
-  for (const task of picked) {
-    for (const id of task.needs ?? []) neededIds.add(id);
+    // Keep only the entities the picked tasks need.
+    const neededIds = new Set();
+    for (const task of picked) {
+      for (const id of task.needs ?? []) neededIds.add(id);
+    }
+    entities = (period.entities ?? []).filter((e) => neededIds.has(e.id));
+  } else {
+    // Direct-objectives path (Hall Duty): use them as given, keep all entities.
+    objectives = period.objectives ?? [];
+    entities = period.entities ?? [];
   }
-  const entities = period.entities.filter((e) => neededIds.has(e.id));
 
-  // e) the concrete period run (metadata carried through for the UI)
+  // The concrete period run.
   return {
     id: period.id,
     name: period.name,
     spawn: period.spawn,
     objectives,
     entities,
+    students: period.students ?? [],   // data-driven students (Stage 6)
+    timeLimit: period.timeLimit,        // seconds; undefined = no countdown
+    discretion: period.discretion === true, // gates the wrong-cite penalty
     onComplete: period.onComplete,
   };
 }

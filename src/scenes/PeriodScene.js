@@ -28,17 +28,6 @@ const TILESET_IMAGE_KEY = 'tileset';
 // This must match the tileset "name" embedded in the Tiled JSON map.
 const TILESET_NAME_IN_MAP = 'tiles';
 
-// Test students for Stage 5. These are spawned every run (independent of which
-// tasks were picked) so citing/composure are always exercisable. `student_rowdy`
-// can DAMAGE the player on contact. Stage 6 (Hall Duty) will replace these with
-// data-driven student spawns; kept in-scene for now as a simple test harness.
-const STUDENT_SPAWNS = [
-  { id: 'student_a', x: 140, y: 100 },
-  { id: 'student_b', x: 180, y: 132 },
-  { id: 'student_c', x: 108, y: 152 },
-  { id: 'student_rowdy', x: 224, y: 108, canDamage: true, tint: 0xff8080 },
-];
-
 // Response to taking a hit (the composure damage itself is in composure.js).
 const KNOCKBACK_STRENGTH = 170; // px/sec shove away from the attacker
 const KNOCKBACK_MS = 200;       // how long the shove lasts
@@ -48,7 +37,15 @@ export default class PeriodScene extends Phaser.Scene {
     super('PeriodScene');
   }
 
+  // The scene is launched with { period } from the Title menu. Falls back to
+  // First Period if started directly (e.g. a boot or a test harness).
+  init(data) {
+    this.periodData = (data && data.period) || period1;
+  }
+
   preload() {
+    const periodData = this.periodData;
+
     // Map + tileset + player sheet.
     this.load.image(TILESET_IMAGE_KEY, 'assets/sprites/tileset.png');
     this.load.tilemapTiledJSON(MAP_KEY, 'assets/maps/test-room.json');
@@ -62,25 +59,28 @@ export default class PeriodScene extends Phaser.Scene {
     this.load.image('student', 'assets/sprites/student.png');
     for (const a of dialoguePortraitAssets()) this.load.image(a.key, a.path);
 
-    // IMPORTANT: buildPeriod() picks a RANDOM subset at create() time, so we
-    // must preload art for the WHOLE period (every possible sprite/item), not
-    // the filtered subset. Whatever gets picked is then already loaded.
-    for (const e of period1.entities) {
+    // IMPORTANT: buildPeriod() may pick a RANDOM subset at create() time, so we
+    // preload art for the WHOLE period (every possible sprite/item), not just
+    // the filtered subset. Whatever gets used is then already loaded.
+    for (const e of periodData.entities ?? []) {
       if (e.sprite) this.load.image(e.sprite, `assets/sprites/${e.sprite}.png`);
     }
-    // Items a find_use giver hands over aren't placed entities, but still need
-    // their "held above the head" art loaded — pull them from the full pool.
-    for (const t of period1.taskPool) {
+    // find_use items aren't placed entities but need their "held" art loaded.
+    for (const t of periodData.taskPool ?? []) {
       if (t.type === 'find_use' && t.item) {
         this.load.image(t.item, `assets/sprites/${t.item}.png`);
       }
     }
+    // Whole student roster — they all share the 'student' sprite, but load any
+    // custom sprite keys just in case.
+    for (const s of periodData.students ?? []) {
+      if (s.sprite) this.load.image(s.sprite, `assets/sprites/${s.sprite}.png`);
+    }
   }
 
   create() {
-    // Build the period ONCE: this picks the random subset of tasks and trims
-    // the entity list down to only what those tasks need.
-    const period = buildPeriod(period1);
+    // Build the period ONCE from the loaded data (picks tasks if it's a pool).
+    const period = buildPeriod(this.periodData);
     this.period = period;
 
     // When true, play is frozen for a UI panel (to-do / complete). This feeds
@@ -120,9 +120,9 @@ export default class PeriodScene extends Phaser.Scene {
       }
     }
 
-    // --- students (test harness for citing + composure) ---
+    // --- students (data-driven from the period JSON) ---
     this.students = [];
-    for (const spec of STUDENT_SPAWNS) {
+    for (const spec of period.students) {
       const student = new Student(this, spec);
       this.physics.add.collider(student, wallsLayer);
       this.students.push(student);
