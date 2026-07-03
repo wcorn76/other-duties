@@ -1,0 +1,22 @@
+{
+  "broken_window": {
+    "title": "The Broken Window",
+    "brief": [
+      "Someone lobbed a kickball through Room 12's window at recess.",
+      "Three kids were near the blacktop."
+    ],
+    "clues": [
+      "The culprit had grass stains on BOTH knees.",
+      "Mia was inside all recess getting extra help.",
+      "Diego wore shorts — no knees to stain."
+    ],
+    "suspects": [
+      { "id": "mia", "name": "Mia", "line": "I was in tutoring — ask Mr. Lewis!" },
+      { "id": "diego", "name": "Diego", "line": "Shorts. No stained knees. I'm clean." },
+      { "id": "avery", "name": "Avery", "line": "...I just found the ball. That's all." }
+    ],
+    "culprit": "avery",
+    "success": "Nice work, Detective. Avery's got a date with detention.",
+    "fail": "That kid's got an alibi. Read the clues again."
+  }
+}
