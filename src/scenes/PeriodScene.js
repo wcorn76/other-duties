@@ -43,6 +43,16 @@ const LOW_TIMER_SECONDS = 10;
 // Lunch Duty: how often a fresh piece of trash appears to be cleaned up (ms).
 const TRASH_SPAWN_EVERY_MS = 4000;
 
+// Lunch Duty: how often a fresh mischief-maker appears to be cited (ms), and
+// the most that may be on the floor at once (so the room never overflows).
+const MISCHIEF_SPAWN_EVERY_MS = 5000;
+const MAX_MISCHIEF_ON_SCREEN = 5;
+// A few sensible cafeteria spots to drop a new mischief kid into.
+const MISCHIEF_SPAWN_POINTS = [
+  { x: 120, y: 70 }, { x: 200, y: 90 }, { x: 150, y: 140 },
+  { x: 260, y: 120 }, { x: 90, y: 100 }, { x: 240, y: 150 },
+];
+
 export default class PeriodScene extends Phaser.Scene {
   constructor() {
     super('PeriodScene');
@@ -92,6 +102,9 @@ export default class PeriodScene extends Phaser.Scene {
     // Lunch Duty extras (the lunch lady for the fail pop).
     if (periodData.type === 'boss') {
       this.load.image('lunch_lady', 'assets/sprites/lunch_lady.png');
+      // Lunch spawns trash at runtime (not via entities/taskPool), so its
+      // texture must be loaded explicitly here.
+      this.load.image('trash', 'assets/sprites/trash.png');
     }
   }
 
@@ -110,6 +123,7 @@ export default class PeriodScene extends Phaser.Scene {
     const tiles = map.addTilesetImage(TILESET_NAME_IN_MAP, TILESET_IMAGE_KEY);
     map.createLayer('floor', tiles, 0, 0);
     const wallsLayer = map.createLayer('walls', tiles, 0, 0);
+    this.wallsLayer = wallsLayer; // stored so runtime spawners can add colliders
     wallsLayer.setCollisionByExclusion([-1]);
     this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
@@ -228,6 +242,8 @@ export default class PeriodScene extends Phaser.Scene {
       this.hud.initMeters(this.meters.getMeters());
       this._trashAccum = 0;
       this._trashCount = 0;
+      this._mischiefAccum = 0;
+      this._mischiefCount = 0;
 
       // TRASH meter: every trash pickup (collect:done, Stage 3 path) drops it.
       this.bus.on('collect:done', () => {
@@ -472,6 +488,27 @@ export default class PeriodScene extends Phaser.Scene {
     this.interaction.register(prop);
   }
 
+  // Spawn a fresh mischief-maker to be cited (keeps the Mischief meter beatable,
+  // the same way updateTrashSpawner keeps Trash beatable). Called each frame from
+  // the boss loop with the frame delta.
+  updateMischiefSpawner(delta) {
+    this._mischiefAccum += delta;
+    if (this._mischiefAccum < MISCHIEF_SPAWN_EVERY_MS) return;
+    this._mischiefAccum = 0;
+    // Count only the live, un-cited guilty kids currently on the floor.
+    const live = this.students.filter((s) => s.active && s.upToNoGood && !s.cited).length;
+    if (live >= MAX_MISCHIEF_ON_SCREEN) return;
+    const p = MISCHIEF_SPAWN_POINTS[Math.floor(Math.random() * MISCHIEF_SPAWN_POINTS.length)];
+    const student = new Student(this, {
+      id: 'mischief_spawn_' + this._mischiefCount++,
+      x: p.x, y: p.y,
+      upToNoGood: true,
+      behaviour: 'loiter',
+    });
+    this.physics.add.collider(student, this.wallsLayer);
+    this.students.push(student);
+  }
+
   // The bell: freeze play, tally every still-uncited guilty kid as a tardy,
   // apply the tardy penalty, and show the results. Then E -> Title.
   ringBell() {
@@ -523,6 +560,7 @@ export default class PeriodScene extends Phaser.Scene {
       this.meters.tick(delta / 1000, timeFraction);
       this.hud.updateMeters(this.meters.getMeters());
       this.updateTrashSpawner(delta);
+      this.updateMischiefSpawner(delta);
       if (this.bathroom) this.bathroom.update(this.time.now);
     }
 
