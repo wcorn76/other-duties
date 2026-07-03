@@ -18,7 +18,10 @@ const DEPTH = 1000;
 
 const HEARTS = { x: 4, y: 3, size: 7, gap: 10, full: 0xff4444, empty: 0x442022 };
 const SCORE = { x: 380, y: 3 };
-const GEAR = { x: 192, y: 3 }; // centre of the strip: active-gear indicator
+const GEAR = { x: 192, y: 3 };  // centre of the strip: active-gear indicator
+// Countdown sits in the gap between the (centred) gear and the (right) score,
+// so it never overlaps hearts / gear / score. Only used by timed periods.
+const TIMER = { x: 282, y: 3 };
 
 const OBJECTIVES = { x: 4, y: 18, lineHeight: 9 };
 const TEXT_STYLE = { fontFamily: 'monospace', fontSize: '8px', color: '#ffffff' };
@@ -64,6 +67,30 @@ export default class Hud {
       .setOrigin(1, 0) // right-aligned
       .setScrollFactor(0)
       .setDepth(DEPTH + 1);
+
+    // COUNTDOWN (centre-right gap) — LIVE, but only timed periods use it. Blank
+    // until setTimer() is called, so untimed periods (First Period) show nothing.
+    this.timerText = scene.add
+      .text(TIMER.x, TIMER.y, '', TEXT_STYLE)
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0)
+      .setDepth(DEPTH + 1);
+  }
+
+  // LIVE countdown. `seconds` remaining; `warning` reddens it (under threshold).
+  setTimer(seconds, warning) {
+    const s = Math.max(0, Math.ceil(seconds));
+    const mm = Math.floor(s / 60);
+    const ss = String(s % 60).padStart(2, '0');
+    this.timerText.setText(`${mm}:${ss}`);
+    this.timerText.setColor(warning ? '#ff5555' : '#ffffff');
+  }
+
+  // Quick scale "flash" of the countdown — the scene calls this each second
+  // while the timer is in the warning window.
+  pulseTimer() {
+    this.timerText.setScale(1.4);
+    this.scene.tweens.add({ targets: this.timerText, scale: 1, duration: 200 });
   }
 
   // LIVE hearts: draw `max` squares, filled up to `current`. Rebuilds on demand.

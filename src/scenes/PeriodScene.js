@@ -21,6 +21,7 @@ import Panel from '../ui/panel.js';
 import DialogueSystem, { dialoguePortraitAssets } from '../systems/dialogue.js';
 import period1 from '../../data/periods/period_1.json';
 import { buildPeriod, installTaskWiring } from '../systems/tasks.js';
+import { countUncitedGuilty, TARDY_PENALTY } from '../systems/hallDuty.js';
 
 // Which map + tileset to load. Hardcoded for now (one test room only).
 const MAP_KEY = 'test-room';
@@ -31,6 +32,10 @@ const TILESET_NAME_IN_MAP = 'tiles';
 // Response to taking a hit (the composure damage itself is in composure.js).
 const KNOCKBACK_STRENGTH = 170; // px/sec shove away from the attacker
 const KNOCKBACK_MS = 200;       // how long the shove lasts
+
+// Countdown: when the remaining time is at/under this many seconds, the HUD
+// timer reddens and flashes each second.
+const LOW_TIMER_SECONDS = 10;
 
 export default class PeriodScene extends Phaser.Scene {
   constructor() {
@@ -178,6 +183,16 @@ export default class PeriodScene extends Phaser.Scene {
       }
     }
 
+    // --- countdown / tardy bell (timed periods only, e.g. Hall Duty) ---
+    this.hasTimer = period.timeLimit != null;
+    this.timerRunning = false; // starts when the player dismisses the briefing
+    this.belled = false;
+    if (this.hasTimer) {
+      this.timeRemainingMs = period.timeLimit * 1000;
+      this.lastTimerSec = null;
+      this.hud.setTimer(period.timeLimit, period.timeLimit <= LOW_TIMER_SECONDS);
+    }
+
     // find_use "givers": the content layer owns this now (talking to the giver
     // hands over the item into the carry slot).
     installTaskWiring(period.objectives, this.bus, this.interaction);
@@ -194,6 +209,7 @@ export default class PeriodScene extends Phaser.Scene {
       onDismiss: () => {
         this.panel = null;
         this.uiBlocked = false; // unfreeze play
+        if (this.hasTimer) this.timerRunning = true; // start the clock
       },
     });
   }
@@ -265,8 +281,9 @@ export default class PeriodScene extends Phaser.Scene {
   }
 
   // Composure hit zero: freeze play and show the fail message, then Title.
-  // Mirrors the period-complete flow.
+  // Mirrors the period-complete flow. This is the hard fail at ANY time.
   onComposureLost() {
+    this.timerRunning = false; // stop the clock
     this.uiBlocked = true;
     this.panel = Panel.message(this, {
       main: 'Composure lost',
@@ -275,20 +292,57 @@ export default class PeriodScene extends Phaser.Scene {
     });
   }
 
-  // Fires once all objectives are complete (via the tracker's onComplete).
+  // Fires once all objectives are complete (via the tracker's onComplete). For
+  // Hall Duty this is the WIN (all guilty cited before the bell).
   onAllComplete() {
+    this.timerRunning = false; // beat the bell — stop the clock
     // Read the period's completion data defensively — those follow-on scenes
     // (oc.next / oc.cutscene) don't exist yet, so we only DISPLAY them.
     const oc = this.period && this.period.onComplete ? this.period.onComplete : {};
     this.uiBlocked = true;
     this.panel = Panel.message(this, {
-      main: 'Period complete!',
+      main: oc.title || 'Period complete!', // Hall Duty sets "Hall cleared!"
       sub: oc.next ? 'Up next: ' + oc.next : '',
       onDismiss: () => this.scene.start('TitleScene'),
     });
   }
 
-  update() {
+  // Count down the passing period; when it hits zero, ring the bell.
+  updateTimer(delta) {
+    if (!this.hasTimer || !this.timerRunning || this.isPlayFrozen()) return;
+
+    this.timeRemainingMs = Math.max(0, this.timeRemainingMs - delta);
+    const sec = Math.ceil(this.timeRemainingMs / 1000);
+    if (sec !== this.lastTimerSec) {
+      this.lastTimerSec = sec;
+      const warning = sec <= LOW_TIMER_SECONDS;
+      this.hud.setTimer(sec, warning);
+      if (warning && sec > 0) this.hud.pulseTimer();
+    }
+    if (this.timeRemainingMs <= 0) this.ringBell();
+  }
+
+  // The bell: freeze play, tally every still-uncited guilty kid as a tardy,
+  // apply the tardy penalty, and show the results. Then E -> Title.
+  ringBell() {
+    if (this.belled) return;
+    this.belled = true;
+    this.timerRunning = false;
+    this.hud.setTimer(0, true);
+
+    const tardies = countUncitedGuilty(this.students);
+    if (tardies > 0) this.score.add(-TARDY_PENALTY * tardies, 'tardy');
+    this.bus.emit('bell:done', { tardies });
+
+    this.uiBlocked = true;
+    this.panel = Panel.message(this, {
+      main: 'Bell rings!',
+      sub: `${tardies} tard${tardies === 1 ? 'y' : 'ies'} • Final score ${this.score.getValue()}`,
+      onDismiss: () => this.scene.start('TitleScene'),
+    });
+  }
+
+  update(time, delta) {
     // Order matters: dialogue and the panel consume input FIRST (each via
     // JustDown, which consumes the press for that frame), THEN interaction and
     // the player — which both early-return while play is frozen. This is what
@@ -301,5 +355,6 @@ export default class PeriodScene extends Phaser.Scene {
     if (this.students) {
       for (const s of this.students) if (s.active) s.update();
     }
+    this.updateTimer(delta);
   }
 }
