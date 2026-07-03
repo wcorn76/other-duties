@@ -1,0 +1,22 @@
+{
+  "id": "hall_duty_1",
+  "name": "Hall Duty",
+  "discretion": true,
+  "timeLimit": 60,
+  "spawn": { "x": 48, "y": 110 },
+  "objectives": [
+    { "id": "clear_hall", "type": "cite", "count": 4, "text": "Cite the kids up to no good" }
+  ],
+  "entities": [],
+  "students": [
+    { "id": "kid_1", "x": 90, "y": 70, "upToNoGood": false, "behaviour": "wander" },
+    { "id": "kid_2", "x": 150, "y": 55, "upToNoGood": false, "behaviour": "wander" },
+    { "id": "kid_3", "x": 255, "y": 70, "upToNoGood": false, "behaviour": "wander" },
+    { "id": "kid_4", "x": 210, "y": 140, "upToNoGood": false, "behaviour": "wander" },
+    { "id": "troublemaker_1", "x": 120, "y": 120, "upToNoGood": true, "behaviour": "loiter" },
+    { "id": "troublemaker_2", "x": 275, "y": 120, "upToNoGood": true, "behaviour": "loiter", "canDamage": true },
+    { "id": "troublemaker_3", "x": 95, "y": 145, "upToNoGood": true, "behaviour": "loiter" },
+    { "id": "runner_1", "x": 170, "y": 95, "upToNoGood": true, "behaviour": "runner" }
+  ],
+  "onComplete": { "title": "Hall cleared!", "cutscene": "hall_duty1_end", "next": "lunch_1" }
+}
