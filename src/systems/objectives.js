@@ -18,6 +18,8 @@
 //       count toward it (omit `item` to count ANY litter).
 //   { id, type:'find_use', item:<itemId>, useTarget:<propId>, giver?, text }
 //       completed by the same deliver:done event as `deliver`.
+//   { id, type:'cite',     count:<n>, text }
+//       count-based (Hall Duty); advances only on GUILTY cites, completes at N.
 
 export default class ObjectiveTracker {
   constructor(bus, objectives, onComplete) {
@@ -59,6 +61,12 @@ export default class ObjectiveTracker {
       this.progressTrash(item);
     });
 
+    // cite:done { id, guilty } -> counts toward 'cite' objectives, but ONLY when
+    // the cited student was guilty. Innocent (wrong) cites are ignored here.
+    this.bus.on('cite:done', ({ guilty }) => {
+      if (guilty === true) this.progressCite();
+    });
+
     // ----------------------------------------------------------------------
     // SEAMS still open for later stages (intentionally NOT implemented):
     //   reach:  this.bus.on('reach:done', ({ zone }) =>
@@ -79,6 +87,22 @@ export default class ObjectiveTracker {
     for (const o of this.objectives) {
       if (o.done || o.type !== 'trash') continue;
       if (o.item != null && o.item !== item) continue; // litter-type filter
+      o.progress = (o.progress || 0) + 1;
+      if (o.progress >= o.count) o.done = true;
+      changed = true;
+    }
+    if (changed) {
+      this.bus.emit('objective:updated', this.getObjectives());
+      this.checkAllComplete();
+    }
+  }
+
+  // Count-based progress for 'cite' objectives (Hall Duty): each GUILTY cite
+  // ticks every open cite objective up by one; it completes at its count.
+  progressCite() {
+    let changed = false;
+    for (const o of this.objectives) {
+      if (o.done || o.type !== 'cite') continue;
       o.progress = (o.progress || 0) + 1;
       if (o.progress >= o.count) o.done = true;
       changed = true;
