@@ -1,0 +1,23 @@
+{
+  "id": "period_test_all5",
+  "name": "Test: All 5",
+  "spawn": { "x": 48, "y": 110 },
+  "pickCount": 3,
+  "taskPool": [
+    { "id": "trash_lounge", "type": "trash", "item": "litter_lounge", "count": 2, "text": "Tidy the teachers' lounge", "needs": ["trash_l1", "trash_l2"] },
+    { "id": "talk_lewis", "type": "talk", "target": "lewis", "dialogue": "lewis_p1", "text": "See what Mr. Lewis needs", "needs": ["lewis"] },
+    { "id": "copier_fix", "type": "find_use", "giver": "prince", "item": "stack_of_paper", "useTarget": "copier", "text": "Sort out the copier", "needs": ["prince", "copier"] },
+    { "id": "cover_lewis", "type": "cover", "zone": "zone_room_lewis", "seconds": 15, "doneMsg": "Oh good, you're back — thanks! — Mr. Lewis", "text": "Cover Mr. Lewis's class", "needs": ["zone_room_lewis"] },
+    { "id": "case_window", "type": "investigation", "incident": "broken_window", "text": "Get to the bottom of the window incident", "needs": ["folder_window"] }
+  ],
+  "entities": [
+    { "type": "npc", "id": "lewis", "sprite": "npc", "x": 300, "y": 60, "dialogue": "lewis_p1", "tint": 13673062 },
+    { "type": "npc", "id": "prince", "sprite": "npc", "x": 200, "y": 150, "dialogue": "prince_p1", "tint": 13391036 },
+    { "type": "prop", "id": "copier", "sprite": "copier", "x": 300, "y": 150, "verb": "accepts", "accepts": "stack_of_paper" },
+    { "type": "prop", "id": "trash_l1", "sprite": "trash", "x": 255, "y": 62, "verb": "trash", "item": "litter_lounge" },
+    { "type": "prop", "id": "trash_l2", "sprite": "trash", "x": 285, "y": 92, "verb": "trash", "item": "litter_lounge" },
+    { "type": "zone", "id": "zone_room_lewis", "x": 40, "y": 44, "w": 56, "h": 40 },
+    { "type": "prop", "id": "folder_window", "sprite": "folder", "x": 132, "y": 112, "verb": "read", "incident": "broken_window" }
+  ],
+  "onComplete": { "title": "Test period cleared!", "next": "(test)" }
+}

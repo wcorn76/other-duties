@@ -31,6 +31,9 @@
 // The zone geometry check is a PURE, exported helper so it's Node-testable; the
 // scene feeds the player position + zone rects into tickZoneObjectives().
 
+// Default dwell for a `cover` task when its data omits `seconds`.
+export const COVER_SECONDS = 30;
+
 // Is point (px,py) inside rect { x, y, w, h }? (Pure — no Phaser.)
 export function pointInRect(px, py, rect) {
   return (
@@ -44,8 +47,13 @@ export function pointInRect(px, py, rect) {
 export default class ObjectiveTracker {
   constructor(bus, objectives, onComplete) {
     this.bus = bus;
-    // Copy each spec and add a `done` flag we own.
-    this.objectives = objectives.map((o) => ({ ...o, done: false }));
+    // Copy each spec and add a `done` flag we own. Cover tasks get a default
+    // dwell if they didn't specify one.
+    this.objectives = objectives.map((o) => ({
+      ...o,
+      done: false,
+      seconds: o.type === 'cover' && o.seconds == null ? COVER_SECONDS : o.seconds,
+    }));
     this.onComplete = onComplete;
     this.allComplete = false;
 
