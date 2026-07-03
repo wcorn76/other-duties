@@ -225,6 +225,33 @@ export default class PeriodScene extends Phaser.Scene {
     this.flashPlayer();
   }
 
+  // A brief camera-pinned announcement banner (e.g. "We've got a runner!").
+  announce(message) {
+    const t = this.add
+      .text(192, 62, message, {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color: '#ffd23f',
+        backgroundColor: '#101018',
+        padding: { x: 4, y: 2 },
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(1400);
+    this.tweens.add({
+      targets: t,
+      alpha: 0,
+      delay: 900,
+      duration: 600,
+      onComplete: () => t.destroy(),
+    });
+  }
+
+  // A runner just bolted (called by the Student when the player gets close).
+  onRunnerTriggered() {
+    this.announce("We've got a runner!");
+  }
+
   // Blink the player's alpha for roughly the i-frame duration.
   flashPlayer() {
     this.tweens.add({
