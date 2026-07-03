@@ -13,7 +13,7 @@ import Npc from '../entities/Npc.js';
 import Student from '../entities/Student.js';
 import InteractionSystem from '../systems/interaction.js';
 import DetentionSlip from '../systems/detentionSlip.js';
-import ObjectiveTracker from '../systems/objectives.js';
+import ObjectiveTracker, { pointInRect } from '../systems/objectives.js';
 import Score from '../systems/score.js';
 import Composure, { DAMAGE_PER_HIT, IFRAME_MS } from '../systems/composure.js';
 import Hud from '../ui/hud.js';
@@ -62,6 +62,7 @@ export default class PeriodScene extends Phaser.Scene {
     // Shared NPC + student bodies + the portraits our conversations need.
     this.load.image('npc', 'assets/sprites/npc.png');
     this.load.image('student', 'assets/sprites/student.png');
+    this.load.image('zone_marker', 'assets/sprites/zone_marker.png');
     for (const a of dialoguePortraitAssets()) this.load.image(a.key, a.path);
 
     // IMPORTANT: buildPeriod() may pick a RANDOM subset at create() time, so we
@@ -114,7 +115,11 @@ export default class PeriodScene extends Phaser.Scene {
     this.dialogue = new DialogueSystem(this, this.bus);
     this.interaction = new InteractionSystem(this, this.player, this.bus);
 
-    // Spawn props and NPCs from the (filtered) period; register interactables.
+    // Zone rects (id -> { x, y, w, h }) for cover/reach objectives, resolved
+    // from spawned 'zone' entities and fed to the objective tracker each frame.
+    this.zoneRects = {};
+
+    // Spawn props, NPCs, and zones from the (filtered) period.
     for (const e of period.entities) {
       if (e.type === 'prop') {
         this.interaction.register(new Prop(this, e));
@@ -122,6 +127,8 @@ export default class PeriodScene extends Phaser.Scene {
         const npc = new Npc(this, e);
         this.physics.add.collider(this.player, npc); // can't walk through a teacher
         this.interaction.register(npc);
+      } else if (e.type === 'zone') {
+        this.spawnZone(e);
       }
     }
 
@@ -161,12 +168,19 @@ export default class PeriodScene extends Phaser.Scene {
         if (!res.blocked) this.flashPlayer();
       }
     });
-    // Completing tasks scores a bonus: award for each newly-completed objective.
-    this.doneCount = 0;
+    // Completing tasks scores a bonus, once per objective. Also: when a `cover`
+    // task finishes, flash its "thanks" message.
+    this.doneIds = new Set();
     this.bus.on('objective:updated', (list) => {
-      const done = list.filter((o) => o.done).length;
-      if (done > this.doneCount) this.score.addTaskComplete(done - this.doneCount);
-      this.doneCount = done;
+      for (const o of list) {
+        if (!o.done || this.doneIds.has(o.id)) continue;
+        this.doneIds.add(o.id);
+        this.score.addTaskComplete(1);
+        if (o.type === 'cover') {
+          const def = period.objectives.find((d) => d.id === o.id);
+          this.announce((def && def.doneMsg) || 'Covered — thanks!');
+        }
+      }
     });
 
     // --- composure / hearts (live in the HUD) ---
@@ -268,6 +282,21 @@ export default class PeriodScene extends Phaser.Scene {
     this.announce("We've got a runner!");
   }
 
+  // Draw a translucent floor marker for a cover/reach zone and record its rect.
+  spawnZone(e) {
+    this.add
+      .tileSprite(e.x, e.y, e.w, e.h, 'zone_marker')
+      .setOrigin(0, 0)
+      .setDepth(0.5); // above the floor, translucent so the player reads through
+    this.add
+      .text(e.x + e.w / 2, e.y + e.h / 2, 'COVER\nHERE', {
+        fontFamily: 'monospace', fontSize: '8px', color: '#bffff0', align: 'center',
+      })
+      .setOrigin(0.5)
+      .setDepth(0.6);
+    this.zoneRects[e.id] = { x: e.x, y: e.y, w: e.w, h: e.h };
+  }
+
   // Blink the player's alpha for roughly the i-frame duration.
   flashPlayer() {
     this.tweens.add({
@@ -355,6 +384,16 @@ export default class PeriodScene extends Phaser.Scene {
     if (this.students) {
       for (const s of this.students) if (s.active) s.update();
     }
+
+    // Zone-based objectives (cover dwell / reach): accrue only while playing,
+    // pausing whenever a panel/dialogue owns the screen.
+    if (this.tracker && !this.isPlayFrozen()) {
+      this.tracker.tickZoneObjectives(delta, (o) => {
+        const r = this.zoneRects[o.zone];
+        return !!r && pointInRect(this.player.x, this.player.y, r);
+      });
+    }
+
     this.updateTimer(delta);
   }
 }

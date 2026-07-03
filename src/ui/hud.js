@@ -136,10 +136,13 @@ export default class Hud {
     this.objLines.forEach((t) => t.destroy());
     this.objLines = objectives.map((o, i) => {
       const box = o.done ? '[x]' : '[ ]';
-      // Show progress for count-based objectives, e.g. "Pick up the trash (1/3)".
-      const counter = o.count ? ` (${o.progress}/${o.count})` : '';
+      // Progress suffix: cover shows seconds ("— 12s / 30s"); other count-based
+      // objectives show "(1/3)".
+      let suffix = '';
+      if (o.type === 'cover') suffix = ` — ${o.progress}s / ${o.seconds}s`;
+      else if (o.count) suffix = ` (${o.progress}/${o.count})`;
       return this.scene.add
-        .text(OBJECTIVES.x, OBJECTIVES.y + i * OBJECTIVES.lineHeight, `${box} ${o.text}${counter}`, {
+        .text(OBJECTIVES.x, OBJECTIVES.y + i * OBJECTIVES.lineHeight, `${box} ${o.text}${suffix}`, {
           ...TEXT_STYLE,
           color: o.done ? '#8fe38f' : '#ffffff',
         })

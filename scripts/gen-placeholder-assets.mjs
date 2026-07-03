@@ -306,8 +306,23 @@ buildNpc();
 buildPortrait('washington', 'W', [56, 120, 120]); // teal
 buildPortrait('prince', 'P', [130, 80, 150]);       // purple
 buildPortrait('lewis', 'L', [200, 120, 60]);         // amber
+// A translucent floor marker tile for "cover here" zones (16x16, tiled over the
+// zone). Baked-in alpha so it reads as a soft highlight the player stands on.
+function buildZoneMarker() {
+  const png = makeImage(16, 16);
+  fillRect(png, 0, 0, 16, 16, [70, 150, 140, 55]);      // soft teal fill
+  strokeRect(png, 0, 0, 16, 16, [130, 230, 210, 150]);  // brighter edge
+  // little corner ticks so the tiling reads as a marked area
+  fillRect(png, 1, 1, 2, 2, [190, 250, 235, 200]);
+  fillRect(png, 13, 1, 2, 2, [190, 250, 235, 200]);
+  fillRect(png, 1, 13, 2, 2, [190, 250, 235, 200]);
+  fillRect(png, 13, 13, 2, 2, [190, 250, 235, 200]);
+  save(png, 'public/assets/sprites/zone_marker.png');
+}
+
 buildTrash();
 buildStackOfPaper();
 buildCopier();
 buildStudent();
+buildZoneMarker();
 console.log('done');
