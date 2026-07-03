@@ -336,10 +336,43 @@ function buildBathroomTell() {
   save(png, 'public/assets/sprites/bathroom_tell.png');
 }
 
+// A cafeteria table (32x16, top-down) with benches — Lunch Duty dressing.
+function buildTable() {
+  const png = makeImage(32, 16);
+  fillRect(png, 0, 2, 32, 2, [130, 100, 75]);   // top bench
+  fillRect(png, 0, 12, 32, 2, [130, 100, 75]);  // bottom bench
+  fillRect(png, 2, 4, 28, 8, [170, 140, 110]);  // table top
+  strokeRect(png, 2, 4, 28, 8, [110, 85, 60]);
+  fillRect(png, 8, 6, 3, 3, [210, 210, 215]);   // a couple of trays
+  fillRect(png, 20, 7, 3, 3, [210, 210, 215]);
+  save(png, 'public/assets/sprites/table.png');
+}
+
+// The lunch lady (40x48): hairnet, apron, and a yelling mouth — for the fail pop.
+function buildLunchLady() {
+  const png = makeImage(40, 48);
+  const SKIN = [235, 195, 160], NET = [70, 60, 60], APRON = [240, 240, 245];
+  const DRESS = [150, 90, 110], BROW = [60, 40, 40], EYE = [20, 20, 24], MOUTH = [120, 40, 40];
+  fillRect(png, 12, 4, 16, 14, SKIN);       // head
+  fillRect(png, 11, 3, 18, 5, NET);          // hairnet
+  fillRect(png, 14, 9, 5, 2, BROW);          // angry brows
+  fillRect(png, 21, 9, 5, 2, BROW);
+  fillRect(png, 15, 11, 2, 2, EYE);          // eyes
+  fillRect(png, 23, 11, 2, 2, EYE);
+  fillRect(png, 17, 14, 6, 3, MOUTH);        // yelling mouth
+  fillRect(png, 8, 18, 24, 26, DRESS);       // body
+  fillRect(png, 14, 20, 12, 22, APRON);      // apron
+  fillRect(png, 4, 20, 4, 14, SKIN);         // arms
+  fillRect(png, 32, 20, 4, 14, SKIN);
+  save(png, 'public/assets/sprites/lunch_lady.png');
+}
+
 buildTrash();
 buildStackOfPaper();
 buildCopier();
 buildStudent();
 buildZoneMarker();
 buildBathroomTell();
+buildTable();
+buildLunchLady();
 console.log('done');

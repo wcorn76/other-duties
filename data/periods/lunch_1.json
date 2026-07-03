@@ -9,6 +9,12 @@
     { "id": "trash", "label": "Trash", "max": 100, "baseEventRate": 0.5, "fallPerAction": 25 },
     { "id": "bathroom", "label": "Bathroom", "max": 100, "baseEventRate": 0.5, "fallPerAction": 25 }
   ],
+  "entities": [
+    { "type": "decor", "id": "table_1", "sprite": "table", "x": 110, "y": 78 },
+    { "type": "decor", "id": "table_2", "sprite": "table", "x": 210, "y": 78 },
+    { "type": "decor", "id": "table_3", "sprite": "table", "x": 110, "y": 132 },
+    { "type": "decor", "id": "table_4", "sprite": "table", "x": 210, "y": 132 }
+  ],
   "students": [
     { "id": "mischief_1", "x": 120, "y": 70, "upToNoGood": true, "behaviour": "loiter" },
     { "id": "mischief_2", "x": 200, "y": 90, "upToNoGood": true, "behaviour": "loiter" },

@@ -89,6 +89,10 @@ export default class PeriodScene extends Phaser.Scene {
     for (const s of periodData.students ?? []) {
       if (s.sprite) this.load.image(s.sprite, `assets/sprites/${s.sprite}.png`);
     }
+    // Lunch Duty extras (the lunch lady for the fail pop).
+    if (periodData.type === 'boss') {
+      this.load.image('lunch_lady', 'assets/sprites/lunch_lady.png');
+    }
   }
 
   create() {
@@ -137,6 +141,10 @@ export default class PeriodScene extends Phaser.Scene {
         this.interaction.register(npc);
       } else if (e.type === 'zone') {
         this.spawnZone(e);
+      } else if (e.type === 'decor') {
+        // Non-interactive dressing (e.g. cafeteria tables). Drawn under the
+        // characters since this loop runs before the students spawn.
+        this.add.image(e.x, e.y, e.sprite);
       }
     }
 
@@ -525,7 +533,8 @@ export default class PeriodScene extends Phaser.Scene {
   // no-ops until the texture exists).
   showLunchLady() {
     if (!this.textures.exists('lunch_lady')) return;
-    const img = this.add.image(192, 92, 'lunch_lady').setScrollFactor(0).setDepth(1450).setScale(0.6);
+    // Loom above the message panel (depth 1500), between the HUD strip and panel.
+    const img = this.add.image(192, 44, 'lunch_lady').setScrollFactor(0).setDepth(1600).setScale(0.5);
     this.tweens.add({ targets: img, scale: 1, duration: 200 });
   }
 }
