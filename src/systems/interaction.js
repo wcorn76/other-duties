@@ -152,6 +152,11 @@ export default class InteractionSystem {
         if (this.scene.dialogue) this.scene.dialogue.start(prop.dialogue, prop.id);
         break;
 
+      case 'read':
+        // Case folder: open the investigation reader for its incident.
+        if (this.scene.reader) this.scene.reader.read(prop.incident);
+        break;
+
       case 'trash':
         // Litter: just remove it and count it — it is NOT carried (no slot used).
         this.collectTrash(prop);

@@ -19,6 +19,7 @@ import Composure, { DAMAGE_PER_HIT, IFRAME_MS } from '../systems/composure.js';
 import Hud from '../ui/hud.js';
 import Panel from '../ui/panel.js';
 import DialogueSystem, { dialoguePortraitAssets } from '../systems/dialogue.js';
+import InvestigationReader from '../systems/investigationReader.js';
 import period1 from '../../data/periods/period_1.json';
 import { buildPeriod, installTaskWiring } from '../systems/tasks.js';
 import { countUncitedGuilty, TARDY_PENALTY } from '../systems/hallDuty.js';
@@ -113,6 +114,7 @@ export default class PeriodScene extends Phaser.Scene {
     // --- event bus + systems ---
     this.bus = new Phaser.Events.EventEmitter();
     this.dialogue = new DialogueSystem(this, this.bus);
+    this.reader = new InvestigationReader(this, this.bus);
     this.interaction = new InteractionSystem(this, this.player, this.bus);
 
     // Zone rects (id -> { x, y, w, h }) for cover/reach objectives, resolved
@@ -232,7 +234,11 @@ export default class PeriodScene extends Phaser.Scene {
   // is up. Player.update and interaction.update both consult this single
   // predicate, so there is exactly ONE freeze path.
   isPlayFrozen() {
-    return (this.dialogue && this.dialogue.isOpen()) || this.uiBlocked;
+    return (
+      (this.dialogue && this.dialogue.isOpen()) ||
+      (this.reader && this.reader.isOpen()) ||
+      this.uiBlocked
+    );
   }
 
   // Called when the player overlaps a damaging student. Composure owns the
@@ -377,6 +383,7 @@ export default class PeriodScene extends Phaser.Scene {
     // the player — which both early-return while play is frozen. This is what
     // stops a dismiss/confirm keypress from leaking into a gameplay interaction.
     if (this.dialogue) this.dialogue.update();
+    if (this.reader) this.reader.update();
     if (this.panel) this.panel.update();
     if (this.interaction) this.interaction.update();
     if (this.slip) this.slip.update();
